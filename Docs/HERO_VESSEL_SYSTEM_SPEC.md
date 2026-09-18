@@ -1,8 +1,14 @@
 # 《轮回者素体系统规范：差异性正交轴与机制权能阶梯架构》
 
-> **版本**：v1.0 (Hero Vessel & Authority Hierarchy Specification)  
-> **文档定位**：项目规划阶段核心系统规范，从计算模型、状态机拓扑、信号转换与管线权限等底层维度，抽象定义英雄差异性与品级梯度。  
-> **关联文档**：[ROGUE_SYSTEM_ARCHITECTURE.md](ROGUE_SYSTEM_ARCHITECTURE.md)、[BATTLE_CORE.md](BATTLE_CORE.md)、[ROGUE_WORLD_AND_AFFIX_DRAFT.md](ROGUE_WORLD_AND_AFFIX_DRAFT.md)
+> **版本**：v1.1 (Hero Vessel & Authority Hierarchy Specification)  
+> **文档定位**：项目规划阶段核心系统规范，从计算模型、状态机拓扑、信号转换与管线权限等底层维度，抽象定义素体差异性与品级梯度。  
+> **关联文档**：[DESIGN_DECISIONS.md](DESIGN_DECISIONS.md)（决策总账）、[ROGUE_SYSTEM_ARCHITECTURE.md](ROGUE_SYSTEM_ARCHITECTURE.md)、[BATTLE_CORE.md](BATTLE_CORE.md)、[ROGUE_WORLD_AND_AFFIX_DRAFT.md](ROGUE_WORLD_AND_AFFIX_DRAFT.md)
+>
+> **v1.1 变更**（依据 [DESIGN_DECISIONS.md](DESIGN_DECISIONS.md)）：
+> - D-08 **素体无先天职业**，`BaseRole` 字段删除；职业改为可自由装卸的插槽被动；
+> - D-08 级联 8：素体个体差异现 **100% 由本命特性承担**，本命特性范例需大幅扩充（见第七节）；
+> - D-04 战斗纯全自动，本命大招改为满怒自动释放；
+> - D-19 新增多拦截器执行顺序约束（见 5.1）。
 
 ---
 
@@ -100,12 +106,16 @@ graph TD
 
 ## 四、宏观构筑经济与系统映射矩阵
 
-| 权能等级 (Tier) | 招募成本 (Hope) | 插槽拓扑架构 | 词条信号转译能力 | 管线插桩权限 | 构筑生态位定位 |
+| 权能等级 (Tier) | 招募成本 (授权点) | 插槽拓扑架构 | 词条信号转译能力 | 管线插桩权限 | 构筑生态位定位 |
 |:---:|:---:|---|---|---|:---:|
 | **Level 1** | **0 消耗**<br>(初始白送/流动) | 2 个通用标量槽 | 无转译能力<br>($f(x) = x$) | 无拦截权，纯响应回调 | 前期过渡垫脚石 |
 | **Level 2** | **2 ~ 3 消耗**<br>(适度沉没) | 2~3 个专精槽位 | 单标签条件触发加成 | 单事件条件监听分支 | 流派基石与枢纽 |
 | **Level 3** | **5 ~ 6 消耗**<br>(重大投资) | 3~4 槽<br>(含1黄金放大槽) | 触发时机/结算域转译 | 独立计算乘区注入 | 战术核心建队支点 |
 | **Level 4** | **8+ 或 特殊奇遇**<br>(极端昂贵) | 4 槽<br>(含全域奇点槽) | 跨世界形态强制同化 | 时间/空间/生死法则拦截 | 终局决胜引力源 |
+
+> **插槽经济提示**：职业本身要占 1 个核心槽（[D-08](DESIGN_DECISIONS.md)）。因此 Level 1 素体的 2 槽 = `1 职业 + 1 自由`，构筑空间极窄；Level 4 的 4 槽才谈得上"双职业"或"职业 + 血脉 + 双技能"的复合构筑。**这正是权能等级的经济意义所在**——高星买的不只是权能深度，还有构筑自由度。
+>
+> ⬜ 权能等级与「基础阶/进阶阶」的关系见 [D-17](DESIGN_DECISIONS.md)（待决，推荐二者正交）。
 
 ---
 
@@ -130,21 +140,29 @@ public record HeroVesselDefinition
 {
     public string VesselId { get; init; }
     public AuthorityLevel Tier { get; init; }
-    public HeroClass BaseRole { get; init; } // 战术基础定位: 防/近/速/弓/术/补
-    
+
+    // ⛔ D-08：BaseRole 字段已删除。素体无先天职业。
+    //    职业是可自由装卸的插槽被动，任何素体都能被改造成任何角色。
+    //    如需在 UI 上给新手一个方向提示，用下面这个字段——它不参与任何逻辑判断。
+    public HeroClass? SuggestedRole { get; init; }   // 仅 UI 提示，禁止进入战斗计算
+
     // 基础标量数据底盘
     public int BaseSpeed { get; init; }
     public int BaseHp { get; init; }
     public int BaseAtk { get; init; }
     public int BaseArmor { get; init; }
-    
+
+    // 本命大招：素体身份的第二根支柱，不可更换。
+    // 由怒气驱动，满怒自动释放（D-04 全自动）。⬜ 最终形态见 D-04b / D-08c
+    public SkillDefinition InnateUltimate { get; init; }
+
     // 轴 1: 行为状态机模型驱动器
     public IBehaviorStateMachine BehaviorModel { get; init; }
-    
+
     // 轴 2: 插槽拓扑定义与转译算子
     public IReadOnlyList<SocketDescriptor> Sockets { get; init; }
     public IAffixTranspiler AffixTranspiler { get; init; }
-    
+
     // 轴 3 & 权能: 底层管线拦截器 (Level 3~4 专享)
     public IPipelineInterceptor PipelineInterceptor { get; init; }
 }
@@ -178,14 +196,55 @@ public interface IPipelineInterceptor
 }
 ```
 
+### 5.1 拦截器执行顺序约束（确定性硬要求）
+
+⬜ 依据 [D-19](DESIGN_DECISIONS.md)（推荐口径，待最终确认）。
+
+多个拦截器同时触发时若无确定顺序，会产生**不可复现的战斗结果**——这是本系统最容易埋下的确定性隐患。
+
+| # | 约束 | 说明 |
+|:---:|---|---|
+| 1 | **排序** | `AuthorityLevel` 降序 → `UnitId` 升序 |
+| 2 | **短路** | 同一拦截点，第一个返回 `true` 的拦截器生效后**立即中止**，后续不执行 |
+| 3 | **纯函数** | 拦截器不得读取任何未排序集合，不得调用 `BattleRng` 以外的随机源 |
+| 4 | **时间流拦截的边界** | `InterceptTimeline` **只允许修改传入单位自身的 `deltaGauge`** |
+
+> ⚠ 第 4 条尤其关键。第三节 Level 4 描述的"全局时间冻结"若直接在拦截器里遍历全场修改 `Gauge`，会破坏 [BATTLE_CORE 6.2](BATTLE_CORE.md) 的"就绪队列一次性构造"前提。
+>
+> **正确做法**：任何全场效果必须实现为一个**状态效果（StatusEffect）**，走既有的状态系统，由主循环统一结算。拦截器只处理单点介入。
+
 ---
 
 ## 六、与战斗内核及肉鸽状态机的协同契约
 
 1. **与战斗内核（`BattleSim`）解耦**：
-   - 战斗内核不知道什么是“3星”或“6星”；
+   - 战斗内核不知道什么是"Level 3"或"Level 4"，也**不知道什么是"职业"或"羁绊"**（[D-08](DESIGN_DECISIONS.md)）；
    - 战斗内核在各个管线阶段（Tick、UpdateGauge、CalculateDamage、OnUnitDeath）仅检查当前单位是否挂载了 `IPipelineInterceptor`；
    - 如果挂载了，则执行拦截逻辑。这保证了核心管线的纯粹性与确定性。
 2. **与肉鸽状态机（`RogueEngine`）解耦**：
-   - `RosterService` 在招募单位时，通过 `AuthorityLevel` 查询全局配置表，决定扣除的军令（Hope）额度；
-   - `InventoryService` 在镶嵌词条时，严格通过 `SocketDescriptor` 进行合法性校验（标签掩码、槽位容量判定）。
+   - `RosterService` 在招募单位时，通过 `AuthorityLevel` 查询全局配置表，决定扣除的**授权点**额度；
+   - `InventoryService` 在镶嵌词条时，严格通过 `SocketDescriptor` 进行合法性校验（标签掩码、槽位容量判定）；
+   - `SynergyService` 在战前统计全队插槽标签件数、匹配羁绊档位，产出 `IBattleModifier` 列表注入 `BattleContext`——**羁绊结算全程不进内核**。
+
+---
+
+## 七、⚠ 遗留工作：本命特性内容量
+
+[D-08](DESIGN_DECISIONS.md) 剥离职业后，素体的个体差异**只剩两根支柱**：
+
+| 支柱 | 当前状态 |
+|---|---|
+| 本命特性（`InnateTrait`） | ⚠ [ROGUE_WORLD 3.2](ROGUE_WORLD_AND_AFFIX_DRAFT.md) 仅有 **3 个范例** |
+| 本命大招（`InnateUltimate`） | ⬜ 取决于 [D-04b](DESIGN_DECISIONS.md) / [D-08c](DESIGN_DECISIONS.md) |
+
+若本命特性内容量不足，素体之间将**只剩属性数值差异**，"防止词条白板化"的原始设计目标会落空。
+
+**建议产能**：首发 20~24 个素体（[D-03](DESIGN_DECISIONS.md) 估算），需配套 **20~24 条互不重复的本命特性** + 同等数量的本命大招。这是 D-08 带来的最大新增设计工作量，建议尽早排期。
+
+**设计约束**：本命特性必须沿第二节的三条正交轴分布，避免全部挤在"某属性 +X%"这一类。参考配比：
+
+| 正交轴 | 建议占比 |
+|---|:---:|
+| 轴一 行为状态机（双模态切换 / 异步并发代理） | ~30% |
+| 轴二 词条转译（极性过滤 / 跨域转译） | ~40% |
+| 轴三 构筑生态位（流派放大器 / 构筑引力源） | ~30% |
