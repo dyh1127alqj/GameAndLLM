@@ -13,6 +13,7 @@
 | **D-02** ✅ | 五行改为中性枚举 `Element`，各世界仅换显示表皮（映射表已移至 [WORLD_SETTING 第四节](WORLD_SETTING.md)） |
 | **D-04** ✅ | 战斗纯全自动，本文档涉及手操的表述已清除 |
 | **D-08** ✅ | 职业插槽化——`HeroVessel.BaseClass` 字段删除；羁绊按插槽件数计数已与本文档 5.1 的口径统一 |
+| **D-20** 🗑 | **运行时 LLM 机制已作废**：项目为纯单机离线自走棋肉鸽（`GameAndLLM` 意为借助 LLM 工具研发游戏），事件系统采用确定性配置表与种子机制 |
 | **D-21** ⬜ | **"词缀"一词全面禁用**，按语境改为「修正器」或「世界法则」 |
 
 > ⚠ **本文档第二节的三条世界法则引用了内核中不存在的机制**，见 [2.3](#23--世界法则的机制依赖检查)。修订为正式稿前必须先定 D-10 / D-11 / D-12。
@@ -26,7 +27,7 @@
 4. [词条生态：分类、阶梯与超武融合 (Affix Ecosystem)](#四词条生态分类阶梯与超武融合-affix-ecosystem)
 5. [套装共鸣与跨界共振矩阵 (Set & Cross-Resonance)](#五套装共鸣与跨界共振矩阵-set--cross-resonance)
 6. [主神空间局外长线元循环 (Meta Hub & Legacy)](#六主神空间局外长线元循环-meta-hub--legacy)
-7. [LLM 主神沙盒与确定性契约 (LLM Overseer Sandbox)](#七llm-主神沙盒与确定性契约-llm-overseer-sandbox)
+7. [位面异象事件契约与确定性规范 (Rogue Event Contract)](#七位面异象事件契约与确定性规范-rogue-event-contract)
 8. [深水区待决策技术与玩法问题清单](#八深水区待决策技术与玩法问题清单)
 
 ---
@@ -57,15 +58,8 @@ flowchart TD
         end
     end
 
-    subgraph LLM_System [LLM 主神系统 (异步决策层)]
-        Briefing[世界任务简报]
-        DynamicEvent[不期而遇位面抉择]
-        ScoreAndRoast[战后主神评定与吐槽]
-    end
-
     Meta_Hub -->|配置世界与初始素体| World_Run
     World_Run -->|结算轮回点数与传家宝| Meta_Hub
-    LLM_System -.->|注入情境文本与分支| World_Run
 ```
 
 ---
@@ -250,30 +244,35 @@ graph LR
 
 ---
 
-## 七、LLM 主神沙盒与确定性契约 (LLM Overseer Sandbox)
+## 七、位面异象事件契约与确定性规范 (Rogue Event Contract)
 
-为保证底层战斗内核的严苛确定性，LLM **严禁直接改写战场变量**，必须通过**“主神仲裁沙盒（Arbitration Sandbox）”**交互：
+位面异象奇遇（Event Node）作为非战斗节点的核心策略交互，采用**纯静态配置表 + 种子随机池**的确定性事件模型，完全运行于本地状态机中，保证种子绝对可复现（支持种子分享、每日挑战、速通排行）：
 
 ```
-[LLM 动态推演] ──产出──> [结构化 JSON Payload] ──校验──> [Rogue 状态机执行]
+[种子系统生成候选] ──派发──> [静态事件模板 EventTemplate] ──玩家抉择──> [Rogue 状态机执行]
 ```
 
-### 7.1 LLM 必须产出的规范 JSON 范式
+### 7.1 事件数据模型规范 (EventDef Payload)
+所有异象奇遇均通过强类型配置定义，在游戏运行时完全基于种子伪随机提取，不依赖任何外部生成逻辑：
 ```json
 {
-  "narrative_text": "你在废弃的巨企数据库里发现了一具被飞剑钉在墙上的仿生人机体...",
+  "event_id": "cyber_abandoned_database_01",
+  "title": "废弃数据库的剑痕",
+  "narrative_text": "你在废弃的巨企数据库深处发现了一具被飞剑钉在钛合金墙壁上的仿生人机体，核心指示灯仍在微弱闪烁...",
   "choices": [
     {
       "choice_id": "extract_chip",
       "text": "拔出残存的数据芯片",
+      "condition": null,
       "system_effect": {
-        "grant_affix_id": "cyber_neural_overclock_v1",
+        "grant_affix_pool_tag": "Cyber",
         "consume_hp_ratio": 0.10
       }
     },
     {
       "choice_id": "pull_sword",
       "text": "尝试拔出这柄古朴的飞剑",
+      "condition": { "min_team_level": 2 },
       "system_effect": {
         "battle_encounter_modifier": "elite_ambush_trap",
         "potential_drop_tag": "Shushan"
@@ -282,40 +281,10 @@ graph LR
   ]
 }
 ```
-* 如果 LLM 网络超时或解析失败，直接拉取该节点预置的**离线静态奇遇配置**，实现 100% 容灾。
-
-### 7.2 ⚠ 种子可复现性约束 ⬜ [D-20](DESIGN_DECISIONS.md)
-
-上面的 JSON 范式有一个隐患：**`grant_affix_id` 让 LLM 直接决定发什么词条，这脱离了种子随机**，会导致整局不可复现，"种子分享 / 每日挑战 / 速通排行"等肉鸽标配功能全部失效。
-
-**修正口径**：
-
-```
-种子系统预生成候选池 → LLM 只能从池中"选择" → 叙事文本自由发挥
-```
-
-```json
-{
-  "narrative_text": "你在废弃的巨企数据库里发现了一具被飞剑钉在墙上的仿生人机体...",
-  "choices": [
-    {
-      "choice_id": "extract_chip",
-      "text": "拔出残存的数据芯片",
-      "system_effect": {
-        "grant_choice_index": 1,        // ← 只能返回候选池索引，不能指定 affix_id
-        "consume_hp_ratio": 0.10
-      }
-    }
-  ]
-}
-```
-
-| 约束 | 说明 |
-|---|---|
-| 候选池生成 | 由 `Rng(seed, nodeId)` 预生成，**与 LLM 是否可用无关** |
-| LLM 权限 | 只能返回索引，**不得**自由指定 `affix_id` |
-| 叙事文本 | 完全自由——**叙事不影响可复现性** |
-| 离线兜底 | 直接用候选池 + 静态文案 |
+### 7.2 确定性契约与种子复现
+- **严格基于种子伪随机**：当前节点出现的事件与选项效果由 `Rng(seed, nodeId)` 决定，相同种子和路径必定触发完全相同的事件；
+- **选项与掉落预确定**：事件选项产生的所有随机奖励/惩罚，均从种子确定的预生成候选池中索引提取；
+- **100% 纯离线运行**：游戏本体无任何网络开销与外部运行时依赖，保证随时随地极速秒开与流畅推演。
 
 ---
 
@@ -336,6 +305,6 @@ graph LR
 |---|:---:|---|
 | 三条世界法则的机制依赖 | [D-10](DESIGN_DECISIONS.md) / [D-11](DESIGN_DECISIONS.md) / [D-12](DESIGN_DECISIONS.md) | 见 [2.3](#23--世界法则的机制依赖检查)，**阻塞世界法则落地** |
 | 首发世界数量 | [D-03](DESIGN_DECISIONS.md) | 推荐 2 个（赛博 + 蜀山） |
-| LLM 与种子可复现 | [D-20](DESIGN_DECISIONS.md) | 见 [7.2](#72--种子可复现性约束--d-20) |
+| 运行时 LLM 机制 | [D-20](DESIGN_DECISIONS.md) | 🗑 **已作废**（确定为纯单机离线架构，无运行时 LLM 依赖） |
 | 本命特性内容量 | — | ⚠ D-08 后素体差异 100% 靠本命特性，3.2 仅有 3 个范例，需扩充至 20~24 条。见 [HERO_VESSEL 第七节](HERO_VESSEL_SYSTEM_SPEC.md) |
 | W-04 计时器是否跨波重置 | — | 见 [2.3](#23--世界法则的机制依赖检查) 注 |

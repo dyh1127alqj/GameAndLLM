@@ -3,18 +3,20 @@
 > **版本**：v1.1 (Roguelike Card Auto-Battler Architecture)  
 > **关联文档**：[DESIGN_DECISIONS.md](DESIGN_DECISIONS.md)（决策总账）、[WORLD_SETTING.md](WORLD_SETTING.md)、[BATTLE_CORE.md](BATTLE_CORE.md)、[HERO_VESSEL_SYSTEM_SPEC.md](HERO_VESSEL_SYSTEM_SPEC.md)、[ROGUE_WORLD_AND_AFFIX_DRAFT.md](ROGUE_WORLD_AND_AFFIX_DRAFT.md)、[ROGUE_MAP_AND_RECRUITMENT.md](ROGUE_MAP_AND_RECRUITMENT.md)  
 > **核心定位**：**多元宇宙无限流** × **策略前置的肉鸽卡牌自动战斗**。
+> **项目定位说明**：仓库名 `GameAndLLM` 意为**「尝试使用 LLM 作为开发辅助工具来研发游戏」**；游戏本体为**纯单机、离线、确定性**架构，游戏运行时完全不依赖、不调用任何 LLM。
 >
 > **v1.1 变更**（依据 [DESIGN_DECISIONS.md](DESIGN_DECISIONS.md)）：
 > - D-01 题材由三国改为多元宇宙无限流，全部经济与角色命名更换；
 > - D-04 战斗确定为**纯全自动零输入**，手操相关表述全部删除；
-> - D-08 **职业羁绊取消**，羁绊下沉至插槽；`SynergyEngine` 由 L1 内核域**移出至 L2 Rogue 层**。
+> - D-08 **职业羁绊取消**，羁绊下沉至插槽；`SynergyEngine` 由 L1 内核域**移出至 L2 Rogue 层**；
+> - 剔除游戏运行时中的 LLM 依赖，确立纯单机确定性事件流与四大解耦域。
 
 ---
 
 ## 目录
 1. [设计背景与定位升级](#一设计背景与定位升级)
 2. [总体系统架构与边界全景](#二总体系统架构与边界全景)
-3. [五大核心系统域职责矩阵](#三五大核心系统域职责矩阵)
+3. [四大核心系统域职责矩阵](#三四大核心系统域职责矩阵)
 4. [系统解耦与数据流转契约](#四系统解耦与数据流转契约)
 5. [战斗机制自走棋化升级路径](#五战斗机制自走棋化升级路径)
 
@@ -47,17 +49,11 @@
 
 ```mermaid
 flowchart TD
-    subgraph L5_Presentation [表现与交互层 (Godot 4.x Presentation)]
+    subgraph L4_Presentation [表现与交互层 (Godot 4.x Presentation)]
         UI_HUD[战斗与HUD视图]
         UI_Map[节点地图与路线选择]
         UI_Shop[酒馆/商店与招募抽卡]
         VFX_Audio[视听反馈/打击特效/音效池]
-    end
-
-    subgraph L4_LLM [LLM 智能与叙事驱动层 (GameAndLLM 扩展)]
-        LLM_Narrator[奇遇事件动态推演]
-        LLM_Bark[战前素体喊话/局内解说]
-        LLM_Tactic[Boss 策略动态意图生成]
     end
 
     subgraph L3_Meta [局外元养成域 (Meta Progression)]
@@ -73,6 +69,7 @@ flowchart TD
         SynergyEngine[插槽羁绊结算器 → 产出 Modifier]
         RelicManager[遗物/世界法则修正器管道]
         Economy[局内资源 (授权点/信用点)]
+        EventEngine[确定性奇遇事件引擎]
     end
 
     subgraph L1_BattleCore [纯 C# 确定性战斗内核 (BattleSim)]
@@ -85,30 +82,26 @@ flowchart TD
     end
 
     %% 依赖与通信关系
-    L5_Presentation -->|监听渲染| L1_BattleCore
-    L5_Presentation -->|下达决策指令| L2_Rogue
-    L5_Presentation -->|读取配置与存档| L3_Meta
+    L4_Presentation -->|监听渲染| L1_BattleCore
+    L4_Presentation -->|下达决策指令| L2_Rogue
+    L4_Presentation -->|读取配置与存档| L3_Meta
 
     L2_Rogue -->|装配并启动单场战斗| L1_BattleCore
     L1_BattleCore -->|上报战斗结果 BattleResult| L2_Rogue
 
     L2_Rogue -->|结算并上报战报| L3_Meta
-
-    L4_LLM -.->|异步提供文本/选项/候选池索引| L2_Rogue
-    L4_LLM -.->|订阅事件驱动台词| L5_Presentation
 ```
 
 ---
 
-## 三、五大核心系统域职责矩阵
+## 三、四大核心系统域职责矩阵
 
 | 系统域 | 核心职责 (What it DOES) | 严禁越界行为 (What it NEVER does) | 核心输入 / 输出 |
 |---|---|---|---|
-| **1. 战斗内核域<br>(`SanguoCore.Battle`)** | • 纯 C# 确定性物理与数值模拟<br>• ATB 充能、自动索敌、出手管线、受击退火<br>• 元素克制环<br>• 单场战斗从 Marching 到 Victory/Defeat<br>• 产生事件流供表现层消费 | • **严禁引用 Godot 引擎**任何 API<br>• **严禁感知肉鸽外围状态**（不知道什么是"下一层"、不知道货币）<br>• **严禁直接调用 LLM**<br>• **严禁认识"职业"与"羁绊"概念**——只认 `Tags` 与传入的 `Modifiers`<br>• **严禁接受任何玩家局内输入**（D-04 全自动） | **Input**: `BattleContext`（我方阵容快照、敌方波次快照、**羁绊/遗物/世界法则已折算成的修正器列表**、随机种子）<br>**Output**: `BattleResult`（胜负、各单位剩余血量/法力/怒气、伤害统计、事件流日志） |
-| **2. 肉鸽状态机域<br>(`SanguoCore.Rogue`)** | • 管理单次单局（Run）的完整生命周期<br>• 节点地图（Map Graph）生成与推进（战斗/突袭/商店/事件/休整）<br>• 战队构筑（素体招募、插槽装配、进阶）<br>• **羁绊结算**：统计全队插槽标签件数 → 匹配档位 → 产出 `Modifier`<br>• 局内遗物与世界法则的修正器管理<br>• 局内经济（授权点/信用点）流转 | • **不负责渲染具体的 UI 动画**<br>• **不干涉单次战斗内的微观每一帧 Tick**<br>• 不负责跨单局的永久数据（除结算时上报 Meta） | **Input**: 玩家交互指令（如：选择节点、招募素体、装配词条）<br>**Output**: `RunStateSnapshot`（当前层数、全队健康度、插槽装配、已激活羁绊、可用交互） |
+| **1. 战斗内核域<br>(`SanguoCore.Battle`)** | • 纯 C# 确定性物理与数值模拟<br>• ATB 充能、自动索敌、出手管线、受击退火<br>• 元素克制环<br>• 单场战斗从 Marching 到 Victory/Defeat<br>• 产生事件流供表现层消费 | • **严禁引用 Godot 引擎**任何 API<br>• **严禁感知肉鸽外围状态**（不知道什么是"下一层"、不知道货币）<br>• **严禁认识"职业"与"羁绊"概念**——只认 `Tags` 与传入的 `Modifiers`<br>• **严禁接受任何玩家局内输入**（D-04 全自动） | **Input**: `BattleContext`（我方阵容快照、敌方波次快照、**羁绊/遗物/世界法则已折算成的修正器列表**、随机种子）<br>**Output**: `BattleResult`（胜负、各单位剩余血量/法力/怒气、伤害统计、事件流日志） |
+| **2. 肉鸽状态机域<br>(`SanguoCore.Rogue`)** | • 管理单次单局（Run）的完整生命周期<br>• 节点地图（Map Graph）生成与推进（战斗/突袭/商店/事件/休整）<br>• 战队构筑（素体招募、插槽装配、进阶）<br>• **羁绊结算**：统计全队插槽标签件数 → 匹配档位 → 产出 `Modifier`<br>• 局内遗物与世界法则的修正器管理<br>• 局内经济（授权点/信用点）流转<br>• **确定性奇遇事件系统**（依据种子与配置表派发） | • **不负责渲染具体的 UI 动画**<br>• **不干涉单次战斗内的微观每一帧 Tick**<br>• 不负责跨单局的永久数据（除结算时上报 Meta） | **Input**: 玩家交互指令（如：选择节点、招募素体、装配词条）<br>**Output**: `RunStateSnapshot`（当前层数、全队健康度、插槽装配、已激活羁绊、可用交互） |
 | **3. 局外元养成域<br>(`SanguoCore.Meta`)** | • 跨单局存档持久化（JSON / 二进制）<br>• 轮回点数、主神科技树（解锁初始授权点、素体池偏好等）<br>• 难度阶梯（Ascension Level）管理<br>• **传承封印**（跨局带入 1 枚词条）<br>• 成就与图鉴系统 | • **不参与局内实时状态运算**<br>• 不直接依赖表现层图形节点 | **Input**: 单局结束后的 `RunSummary`<br>**Output**: 玩家 Profile、解锁的素体池与词条池掩码 |
 | **4. 表现与交互层<br>(`GodotPresentation`)** | • 纯展现与用户输入采集<br>• 阵型站位拖拽、卡牌信息预览<br>• 序列帧打击特效、飘字 Tween、音频混音池<br>• 响应式的 UI 状态绑定（MVVM / Reactive） | • **严禁在表现层中编写战斗结算或数值扣减公式**（表现层永远只是“播放器”）<br>• 严禁直接篡改底层模型属性 | **Input**: 引擎渲染帧 `_Process`、用户触控/鼠标输入、内核事件流<br>**Output**: 调用 Rogue/Battle 的指令接口 |
-| **5. LLM / AI 扩展层<br>(`GameAndLLM.Agent`)** | • **异步外挂服务**：为肉鸽奇遇事件生成动态剧情与多选分支<br>• 根据战况日志（BattleResult）生成素体动态嘲讽、战斗评述（主神点评）<br>• 动态生成具名精英敌人的个性化外号与战斗意图提示 | • **绝对不能出现在战斗内的高频 Tick 循环中**<br>• 网络延迟或 API 失败时必须有 **Fallback 离线静态配置**，不可导致核心玩法阻断<br>• **严禁自由指定掉落物 ID**——只能从种子预生成的候选池中按索引选择（⬜ [D-20](DESIGN_DECISIONS.md)），否则破坏种子可复现性 | **Input**: 局内上下文 JSON（当前阵容、已激活羁绊、遭遇事件 ID、候选池条目、上局战报）<br>**Output**: 结构化数据/文本（动态事件选项、对话台词、候选池索引） |
 
 ---
 

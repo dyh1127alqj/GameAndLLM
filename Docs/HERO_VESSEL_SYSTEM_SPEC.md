@@ -115,7 +115,7 @@ graph TD
 
 > **插槽经济提示**：职业本身要占 1 个核心槽（[D-08](DESIGN_DECISIONS.md)）。因此 Level 1 素体的 2 槽 = `1 职业 + 1 自由`，构筑空间极窄；Level 4 的 4 槽才谈得上"双职业"或"职业 + 血脉 + 双技能"的复合构筑。**这正是权能等级的经济意义所在**——高星买的不只是权能深度，还有构筑自由度。
 >
-> ⬜ 权能等级与「基础阶/进阶阶」的关系见 [D-17](DESIGN_DECISIONS.md)（待决，推荐二者正交）。
+> ✅ 权能等级与「基础阶/进阶阶」的关系已按 [D-17](DESIGN_DECISIONS.md) 确立为正交模型（先天权能决定机制上限，局内进阶解锁插槽与本命效果）。
 
 ---
 
@@ -153,7 +153,7 @@ public record HeroVesselDefinition
     public int BaseArmor { get; init; }
 
     // 本命大招：素体身份的第二根支柱，不可更换。
-    // 由怒气驱动，满怒自动释放（D-04 全自动）。⬜ 最终形态见 D-04b / D-08c
+    // 由怒气驱动，满怒自动释放（D-04 全自动）。✅ 最终形态已按 D-04b / D-08c 定案保留
     public SkillDefinition InnateUltimate { get; init; }
 
     // 轴 1: 行为状态机模型驱动器
@@ -198,7 +198,7 @@ public interface IPipelineInterceptor
 
 ### 5.1 拦截器执行顺序约束（确定性硬要求）
 
-⬜ 依据 [D-19](DESIGN_DECISIONS.md)（推荐口径，待最终确认）。
+✅ 依据 [D-19](DESIGN_DECISIONS.md) 确立权威执行契约。
 
 多个拦截器同时触发时若无确定顺序，会产生**不可复现的战斗结果**——这是本系统最容易埋下的确定性隐患。
 
@@ -235,7 +235,7 @@ public interface IPipelineInterceptor
 | 支柱 | 当前状态 |
 |---|---|
 | 本命特性（`InnateTrait`） | ⚠ [ROGUE_WORLD 3.2](ROGUE_WORLD_AND_AFFIX_DRAFT.md) 仅有 **3 个范例** |
-| 本命大招（`InnateUltimate`） | ⬜ 取决于 [D-04b](DESIGN_DECISIONS.md) / [D-08c](DESIGN_DECISIONS.md) |
+| 本命大招（`InnateUltimate`） | ✅ 已按 [D-04b](DESIGN_DECISIONS.md) / [D-08c](DESIGN_DECISIONS.md) 定案保留，由怒气驱动 |
 
 若本命特性内容量不足，素体之间将**只剩属性数值差异**，"防止词条白板化"的原始设计目标会落空。
 
