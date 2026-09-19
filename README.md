@@ -51,7 +51,8 @@
 
 | 模块 | 文档名称 | 定位与核心内容 |
 |---|---|---|
-| **决策总账** | [DESIGN_DECISIONS.md](Docs/DESIGN_DECISIONS.md) | **系统总账与设计判例库**。记录从 D-01 到 D-24 的 24 项关键决策背景、冲突推导与最终落定口径。 |
+| **工程总案** | [ENGINEERING_PLAN_AND_ASSETS.md](Docs/ENGINEERING_PLAN_AND_ASSETS.md) | **【生产级总案】** 完整待实施工程清单（36 项 WBS）、5 周 Sprint 排期门禁、24 款素体与 62 枚词条等全量数字资产明细账。 |
+| **决策总账** | [DESIGN_DECISIONS.md](Docs/DESIGN_DECISIONS.md) | **系统总账与设计判例库**。记录从 D-01 到 D-27 的 27 项关键决策背景、冲突推导与最终落定口径。 |
 | **系统架构** | [ROGUE_SYSTEM_ARCHITECTURE.md](Docs/ROGUE_SYSTEM_ARCHITECTURE.md) | 四大解耦域架构矩阵（战斗、肉鸽、元养成、表现层）与接口通信契约。 |
 | **世界与词条** | [ROGUE_WORLD_AND_AFFIX_DRAFT.md](Docs/ROGUE_WORLD_AND_AFFIX_DRAFT.md) | 世界观架构、词条插槽规则草案、位面异象确定性事件协议。 |
 | **世界观设定** | [WORLD_SETTING.md](Docs/WORLD_SETTING.md) | 世界观底座、标准术语表、五行元素在各世界的表皮映射表、剧情文案硬约束。 |
