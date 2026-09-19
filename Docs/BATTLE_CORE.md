@@ -59,6 +59,7 @@
 18. [确定性与随机数](#十八确定性与随机数)
 19. [事件流接口](#十九事件流接口)
 20. [常量速查表](#二十常量速查表)
+21. [扩展机制](#二十一扩展机制)
 
 **附录**
 
@@ -544,22 +545,23 @@ ExecuteAction(u):
 ### 11.2 单目标伤害结算
 
 ```
-ApplyDamage(src, tgt, skillMult, isAbsolute, statusesToApply):
+ApplyDamage(src, tgt, skillMult, skillPen, statusesToApply):
 
     ── 1. 攻击侧乘区 ───────────────────────────
     elem   = ElementCoef(src.Element, tgt.Element)        // 1.25 / 1.00 / 0.75
-    atkMod = Modifiers.GetAtkMultiplier(src, tgt)         // 羁绊/遗物/世界法则
+    atkMod = SoftClamp(Modifiers.GetAtkMultiplier(src, tgt), 3.0, 5.0)   // ✅ D-13
     raw    = src.Atk * atkMod * skillMult * elem
 
-    ── 2. 防御减免 ─────────────────────────────
-    if isAbsolute:
-        mitigated = raw                                  // 无视护甲
-    else:
-        armor     = Modifiers.GetEffectiveArmor(tgt)
-        mitigated = raw * (1 - armor / (armor + 1500))
+    ── 2. 防御减免（连续穿透）────────────────── ✅ D-24/B-13
+    pen      = min(1.0, skillPen + Modifiers.GetArmorPenetration(src, tgt))
+    armor    = Modifiers.GetEffectiveArmor(tgt) * (1 - pen)
+    K        = 800 + 20 * tgt.Level                      // ✅ D-24/B-6
+    mitigated = raw * (1 - armor / (armor + K))
 
     ── 3. 受伤乘区 ─────────────────────────────
-    final = mitigated * Modifiers.GetDamageTakenMultiplier(tgt, src)
+    dr    = Modifiers.GetDamageTakenMultiplier(tgt, src)
+    dr    = 1 - SoftClamp(1 - dr, 0.50, 0.75)            // ✅ D-13 减伤上限 75%
+    final = mitigated * dr
 
     ── 4. 取整与保底 ───────────────────────────[补全]
     final = max(1, (int)floor(final))                    // 仅在此处取整一次
@@ -626,46 +628,136 @@ Fire → Metal → Wood → Earth → Water → Fire
 
 **[推导]** 同一对单位互打的伤害比 `1.25 / 0.75 ≈ 1.67`——元素摆幅大于绝大多数单条羁绊效果。
 
-### 12.2 伤害公式
+### 12.2 伤害公式 ✅ [D-24/B-13](DESIGN_DECISIONS.md)
 
 $$\text{Raw} = \text{Atk} \times \text{AtkMod} \times \text{SkillMult} \times \text{Elem}$$
 
-$$\text{Final} = \begin{cases}
-\text{Raw} \times \text{DmgTakenMod} & \text{绝对伤害} \\[6pt]
-\text{Raw} \times \left(1 - \dfrac{\text{Armor}}{\text{Armor} + 1500}\right) \times \text{DmgTakenMod} & \text{常规伤害}
-\end{cases}$$
+**护甲穿透为连续量**（不再是"绝对伤害"二元开关）：
 
-> ⛔ v1.0 公式中的 `Charge`（蓄力）乘区已删除（D-04）。
+$$\text{EffArmor} = \text{Armor} \times (1 - \text{Pen})$$
 
-### 12.3 护甲收益曲线（K = 1500）
+$$\text{Final} = \text{Raw} \times \left(1 - \dfrac{\text{EffArmor}}{\text{EffArmor} + K}\right) \times \text{DmgTakenMod}$$
 
-| 护甲值 | 免伤率 | 等效生命倍率 |
+- $\text{Pen} \in [0, 1]$ —— 护甲穿透率，由技能配置与 `Modifier` 累加后钳制；
+- $\text{Pen} = 0$ 为常规攻击，$\text{Pen} = 1$ 等价于旧的"绝对伤害"；
+- **[补全]** 多来源穿透**加法叠加**后钳制于 `[0, 1]`：$\text{Pen} = \min(1, \sum \text{Pen}_i)$。
+
+> ⛔ v1.0 的 `Charge`（蓄力）乘区已删除（D-04）。
+> ⛔ v2.0 的"绝对伤害"二元分支已删除（D-24/B-13）。旧配置表中的 `isAbsolute = true` 迁移为 `Pen = 1.0`。
+
+**[推导]** 穿透收益参考（目标护甲 3000，`K` 按 12.3 取 3000）：
+
+| `Pen` | 有效护甲 | 免伤率 | 相对 `Pen=0` 的伤害倍率 |
+|---:|---:|---:|---:|
+| 0% | 3000 | 50.0% | ×1.00 |
+| 30% | 2100 | 41.2% | ×1.18 |
+| 50% | 1500 | 33.3% | ×1.33 |
+| 70% | 900 | 23.1% | ×1.54 |
+| 100% | 0 | 0.0% | ×2.00 |
+
+对比旧二元开关的 ×3 跳变，连续量把"必带/废品"变成了可调旋钮。
+
+### 12.3 护甲收益曲线 ✅ [D-24/B-6](DESIGN_DECISIONS.md)
+
+**`K` 随等级线性缩放**（不再是固定 1500）：
+
+$$K = 800 + 20 \times \text{Level}$$
+
+| 等级 | `K` | 达成 50% 免伤所需护甲 |
+|:---:|---:|---:|
+| 1 | 820 | 820 |
+| 15 | 1100 | 1100 |
+| 35 | 1500 | 1500 |
+| 60 | 2000 | 2000 |
+| 100 | 2800 | 2800 |
+
+**免伤率由「护甲 ÷ K」的比值决定**，而非护甲绝对值：
+
+| 护甲 / K | 免伤率 | 等效生命倍率 |
 |---:|---:|---:|
 | 0 | 0.0% | ×1.00 |
-| 750 | 33.3% | ×1.50 |
-| **1500** | **50.0%** | ×2.00 |
-| 3000 | 66.7% | ×3.00 |
-| 4500 | 75.0% | ×4.00 |
+| 0.5 | 33.3% | ×1.50 |
+| **1.0** | **50.0%** | ×2.00 |
+| 2.0 | 66.7% | ×3.00 |
+| 3.0 | 75.0% | ×4.00 |
 
 曲线永不触及 100%。
 
-> ⚠ `K` 为固定常数，不随等级缩放 → [附录 B-6](#b-6-护甲常数不随等级缩放)。
-> ⚠ "绝对伤害"是二元开关，对 3000 护甲目标是常规技能的 3 倍 → [附录 B-13](#b-13-绝对伤害是二元开关)。
+> **[补全]** `Level` 取**受击方**的等级。取攻击方会导致高等级单位打低等级时护甲凭空变强，反直觉。
+> **[补全]** 敌方单位无等级概念时，取该波次配置的 `WaveLevel`。
 
-### 12.4 DOT 跳伤公式 **[补全]**
+### 12.4 DOT 跳伤公式 ✅ [D-24/B-8](DESIGN_DECISIONS.md)
+
+**混合公式**（百分比最大生命 + 施法者攻击力）：
 
 ```
-DotDamage = max(1, (int)floor(tgt.MaxHp * pct * DmgTakenMod))
+DotDamage = max(1, (int)floor(
+    (tgt.MaxHp * pct + src.Atk * atkCoef) * DmgTakenMod
+))
 ```
+
+| 参数 | 默认值 | 说明 |
+|---|:---:|---|
+| `pct` | 见 14.3 各状态表 | 目标最大生命百分比项，提供抗数值膨胀的底线 |
+| `atkCoef` | `0.20` | 施法者攻击力系数，提供成长反馈 |
+
+**设计意图**：百分比项保证 DOT 对高血量目标始终有效（抗膨胀），攻击力项保证玩家升级装备后 DOT 会变强（成长可见）。v2.0 的纯百分比公式使满级与 1 级的流血完全等值，是成长反馈的硬伤。
+
+**[补全]** `src` 已阵亡时，`atkCoef` 项按其**死亡瞬间**的 `Atk` 快照计算（DOT 施加时记入 `StatusEffect.SourceAtkSnapshot`），避免读取已销毁单位。
 
 | 特性 | 裁定 |
 |---|:---:|
-| 受护甲影响 | ❌ |
+| 受护甲 / 穿透影响 | ❌ |
 | 受元素影响 | ❌ |
 | 受受伤乘区影响 | ✅ |
 | 触发退火 / 回怒 | ❌ |
 | 可致死 | ✅ |
-| 随施法者攻击力成长 | ❌ → [附录 B-8](#b-8-dot-不随成长缩放) |
+| **随施法者攻击力成长** | **✅**（`atkCoef` 项） |
+| 受 DOT 总量上限约束 | ✅ 见 12.6 |
+
+### 12.5 数值防爆软钳制 ✅ [D-13](DESIGN_DECISIONS.md)
+
+内核在各乘区出口统一施加软钳制，杜绝构筑后期数值破表。
+
+| 项 | 硬上限 `Cap` | 软阈值 `Soft` |
+|---|:---:|:---:|
+| 总减伤率 | `0.75` | `0.50` |
+| 行动条充能倍率 | `3.00` | `2.00` |
+| 攻击总乘区 | `5.00` | `3.00` |
+| `HealingReceived` | `[0.20, 3.00]` | `2.00`（上行） |
+| DOT 合计每秒扣血 | `0.15 × MaxHp` | `0.10 × MaxHp` |
+
+**钳制算法**——软阈值以下**不惩罚**，仅衰减超出部分：
+
+```
+SoftClamp(raw, soft, cap):
+    if raw <= soft:  return raw
+    return soft + (cap - soft) * (1 - soft / raw)
+```
+
+**[推导]** 攻击乘区（`Soft = 3.0`, `Cap = 5.0`）验算：
+
+| 原始乘区 | 生效乘区 |
+|---:|---:|
+| 1.0 | **1.00**（无加成不受惩罚） |
+| 3.0 | **3.00**（阈值处连续，无跳变） |
+| 4.0 | 3.50 |
+| 6.0 | 4.00 |
+| 12.0 | 4.50 |
+| → ∞ | → 5.00（永不触及） |
+
+> ⚠ **[补全]** 不得采用 `cap × (1 - 1/(1 + raw/cap))` 这类作用于整体的形式——该形式在 `raw = 1`（无任何加成）时返回 `0.833`，会凭空削弱基础值 17%，且 `raw = cap` 时只给一半。软钳制必须满足两个性质：**低值区恒等**（`raw ≤ soft` 时 `f(raw) = raw`）与**阈值处连续**。
+
+### 12.6 DOT 总量上限
+
+同一单位身上所有 DOT 的**每秒合计扣血**受 12.5 的上限约束：
+
+```
+totalDotPerSec = Σ (DotDamage_i / TickInterval_i)
+若 totalDotPerSec > SoftClamp 上限，则按比例缩放各 DOT 的本次跳伤
+```
+
+**[补全]** 缩放按各 DOT 的 `UnitId → StatusType` 确定顺序遍历，保证确定性。
 
 ---
 
@@ -688,15 +780,23 @@ DotDamage = max(1, (int)floor(tgt.MaxHp * pct * DmgTakenMod))
 
 | 挂钩 | 调用位置 | 返回/作用 |
 |---|---|---|
-| `GetAtkMultiplier(src, tgt)` | 11.2 步骤 1 | 攻击乘区 |
-| `GetEffectiveArmor(tgt)` | 11.2 步骤 2 | 有效护甲 |
-| `GetDamageTakenMultiplier(tgt, src)` | 11.2 步骤 3 | 受伤乘区 |
+| `GetAtkMultiplier(src, tgt)` | 11.2 步骤 1 | 攻击乘区（出口经 `SoftClamp`） |
+| `GetArmorPenetration(src, tgt)` | 11.2 步骤 2 | **护甲穿透率**，加法叠加后钳制 `[0,1]` ✅ D-24/B-13 |
+| `GetEffectiveArmor(tgt)` | 11.2 步骤 2 | 有效护甲（穿透前） |
+| `GetDamageTakenMultiplier(tgt, src)` | 11.2 步骤 3 | 受伤乘区（出口经 `SoftClamp`，减伤上限 75%） |
 | `GetManaBurnAmount(tgt)` | 11.2 步骤 6 | 退火量（默认 10） |
 | `GetHealingDone / Received` | 11.3 | 治疗乘区 ✅ D-12 |
 | `OnAfterAction(u, mode, targets)` | 11.1 步骤 4 | 出手后附加效果（如附加 DOT） |
 | `RollExtraAction(u, rng)` | 11.1 步骤 6 | 额外再动概率（默认 0） |
 | `GetManaRegenPerSec(u)` | 6.2 阶段 2 | 法力自然回复 ✅ D-11 |
+| `GetGaugeRateMultiplier(u)` | 6.2 阶段 2 | 行动条充能倍率（上限 300%）✅ D-13 |
+| `GetLifestealRatio(src, tgt)` | 11.2 步骤 5 后 | 生命吸取比例 ✅ [21.2](#212-生命吸取lifesteal) |
+| `GetReflectRatio(tgt, src)` | 11.2 步骤 5 后 | 反射伤害比例 ✅ [21.3](#213-反射伤害reflect) |
+| `GetExecuteThreshold(src, tgt)` | 11.2 步骤 8 前 | 阈值斩杀线 ✅ [21.6](#216-阈值斩杀execute) |
+| `GrantShield(u, amount, cap)` | Tick / 事件 | 授予护盾 ✅ [21.1](#211-护盾shield) |
 | `OnBattleStart(units)` | 战斗初始化 | 初始资源、属性修正 |
+
+> **[补全]** 所有返回乘区的挂钩，其**求和/求积在 `Modifier` 侧完成，钳制在内核出口完成**。`Modifier` 不得自行钳制，否则多来源叠加时上限会被重复施加。
 
 ### 13.3 原六职业天赋的去向
 
@@ -745,6 +845,14 @@ StatusEffect {
 | **沉默** | `Silence` | 允许普攻与回蓝回怒，禁止战技与大招 | 正常累加 |
 | **减速** | `Slow` | 削减移速与行动条累加速率（`Magnitude ≈ 0.30`） | 按 `SlowFactor` 折减 |
 
+**机制类状态** ✅ [第二十一节](#二十一扩展机制)——不可驱散、不受 DR 约束、不产生 DOT：
+
+| 状态 | 枚举 | 行为 |
+|:---:|:---:|---|
+| **无敌** | `Invulnerable` | 伤害管线最前置拦截，完全免疫（含 DOT） |
+| **隐匿** | `Stealth` | 无法被敌方 `Single` 模式选中；AOE 仍命中；主动出手后立即解除 |
+| **嘲讽** | `Taunt` | 强制被嘲讽者的 `Single` 目标指向嘲讽者 |
+
 ### 14.3 持续伤害类（DOT）
 
 | 状态 | 持续 | 间隔 | 每跳 | 总量 |
@@ -776,7 +884,57 @@ ApplyStatus(tgt, newStatus):
 - 同类型**不叠加层数**，后施加者刷新时长并取较高强度；
 - **不同类型**可任意共存。
 
-### 14.5 其他裁定 **[补全]**
+### 14.5 硬控递减（DR）✅ [D-24/B-9](DESIGN_DECISIONS.md)
+
+> v2.0 无 DR，存在"多控制单位永久锁死玩家核心素体"的风险。全自动下玩家连"手动打断"这个最后手段都没有，只能眼睁睁看着，是最劣质的失败体验。本版引入强制 DR。
+
+**适用范围**：仅**硬控**类状态（`Stun` / `Freeze`）。`Silence` 与 `Slow` 不受 DR 约束（它们不剥夺行动权）。
+
+**递减阶梯**：
+
+| 该单位本轮第 N 次受到硬控 | 生效时长系数 |
+|:---:|:---:|
+| 1 | `100%` |
+| 2 | `50%` |
+| 3 | `25%` |
+| 4 及以后 | **`0%`（完全免疫）** |
+
+**DR 计数器规则 [补全]**：
+
+```
+每个单位持有：DrStacks: int，DrResetAt: float
+
+ApplyHardCC(tgt, duration):
+    if tgt.DrStacks >= 3:
+        return                              // 免疫，不施加，不刷新计时
+    factor = [1.0, 0.5, 0.25][tgt.DrStacks]
+    ApplyStatus(tgt, Stun/Freeze, duration * factor)
+    tgt.DrStacks += 1
+    tgt.DrResetAt = DrWindow                // 每次成功施加都重置窗口
+
+// 主循环阶段 1 内递减
+tgt.DrResetAt -= dt
+if tgt.DrResetAt <= 0 && tgt.DrStacks > 0:
+    tgt.DrStacks = 0
+    Emit(DrReset, tgt)
+```
+
+| 常量 | 值 | 说明 |
+|---|:---:|---|
+| `DrWindow` | **`5.0s`** | 自最后一次成功施加硬控起计时，期间无新硬控则清零 |
+| `DrMaxStacks` | `3` | 第 4 次起完全免疫 |
+
+**[推导]** 最坏情况下单位的连续失控上限：假设初始硬控 2 秒，
+
+```
+2.0s (100%) + 1.0s (50%) + 0.5s (25%) = 3.5s，随后 5 秒内完全免疫
+```
+
+即**任何情况下失控不超过 3.5 秒**，且之后必有至少 5 秒的免疫窗口。这与 ✅ D-04c 的 20~40 秒战斗时长相容（最差失控占比约 17%）。
+
+**[补全]** DR 计数器**跨波次清零**（与状态清空规则一致），但**不跨复活**——D-09 已废除局内复活，此条仅为将来预留。
+
+### 14.6 其他裁定 **[补全]**
 
 | 情形 | 裁定 |
 |---|---|
@@ -785,7 +943,9 @@ ApplyStatus(tgt, newStatus):
 | 眩晕/冰冻期间 DOT 是否继续跳 | **是** |
 | 单位阵亡时状态处理 | **全部清空** |
 | 状态是否跨波次保留 | **否，波次切换时清空** |
-| **控制递减（DR）** | **⚠ 当前无 DR，存在永久控制锁链风险** → [附录 B-9](#b-9-控制无递减) |
+| **控制递减（DR）** | ✅ **已引入**，见 [14.5](#145-硬控递减dr--d-24b-9)。硬控 `100%/50%/25%/免疫`，`DrWindow = 5s` |
+| DR 计数器是否跨波保留 | **否，跨波清零** |
+| `Silence` / `Slow` 是否受 DR | **否**（不剥夺行动权） |
 
 ---
 
@@ -989,13 +1149,257 @@ class BattleRng {
 | | 受击回怒 | `+5` | ✅ D-04b |
 | | 受击法力退火 | `-10`（可被 Modifier 减免） | |
 | | ~~蓄力时长 / 倍率~~ | **已废除** | D-04 |
-| **伤害** | 护甲减免常数 `K` | `K = 800 + 20 × Level`（基线 1500@Lv35） | ✅ D-24 |
+| **伤害** | 护甲减免常数 `K` | `K = 800 + 20 × Level`（受击方等级；基线 1500@Lv35） | ✅ D-24/B-6 |
+| | 护甲穿透 `Pen` | 连续量 `[0,1]`，多来源加法叠加后钳制 | ✅ D-24/B-13 |
+| | ~~绝对伤害二元开关~~ | **已废除**，迁移为 `Pen = 1.0` | ✅ D-24/B-13 |
 | | 伤害保底 / 取整 | `max(1, floor(x))` | |
 | | 元素克制 / 被克 | `1.25` / `0.75` | |
+| **软钳制** | 攻击总乘区 `Soft/Cap` | `3.0 / 5.0` | ✅ D-13 |
+| | 总减伤率 `Soft/Cap` | `0.50 / 0.75` | ✅ D-13 |
+| | 充能倍率 `Soft/Cap` | `2.0 / 3.0` | ✅ D-13 |
+| | `HealingReceived` 区间 | `[0.20, 3.00]`，上行 `Soft = 2.0` | ✅ D-13 |
+| | DOT 合计每秒扣血 `Soft/Cap` | `0.10 / 0.15 × MaxHp` | ✅ D-13 |
+| | 钳制算法 | `raw ≤ soft → raw`；否则 `soft + (cap-soft)×(1 - soft/raw)` | ✅ D-13 |
 | **DOT** | Tick 间隔 | `2s`（首跳延后一个间隔） | |
-| | 火烧 / 流血 | 6s，每跳 5% MaxHp | ⚠ 见 14.3 |
-| | 中毒 | 20s，每跳 2% MaxHp | ⚠ 可能跑不完 |
+| | 跳伤公式 | `MaxHp × pct + Atk × atkCoef` | ✅ D-24/B-8 |
+| | `atkCoef` | `0.20` | ✅ D-24/B-8 |
+| | 火烧 / 流血 | 6s，每跳 5% MaxHp | |
+| | 中毒 | **10s，每跳 4% MaxHp**（共 5 跳） | ✅ D-24/B-14 |
 | | 叠加规则 | 同类型唯一，取长取强 | |
+| **扩展机制** | `Shield` 初值 / 衰减 / 跨波 | `0` / 不衰减 / 清空 | ✅ D-27 |
+| | 护盾完全吸收时是否退火回怒 | **仍触发** | ✅ D-27 |
+| | 生命吸取：DOT / 反射是否触发 | **均不触发** | ✅ D-27 |
+| | 反射伤害标记 | `IsReflected`，不再触发反射/吸血/退火 | ✅ D-27 |
+| | 斩杀触发源 | **仅直接伤害**，DOT 不触发 | ✅ D-27 |
+| | 隐匿：AOE 是否命中 | **命中**（仅过滤 `Single`） | ✅ D-27 |
+| | 嘲讽实现 | 强制目标覆盖，**无威胁值系统** | ✅ D-27 |
+| | `RageCap` | `100`（可被 Modifier 提升） | ✅ D-27 |
+| **控制递减** | `DrWindow` | `5.0s` | ✅ D-24/B-9 |
+| | `DrMaxStacks` | `3`（第 4 次起免疫） | ✅ D-24/B-9 |
+| | 递减阶梯 | `100% / 50% / 25% / 免疫` | ✅ D-24/B-9 |
+| | 适用范围 | 仅 `Stun` / `Freeze`；`Silence`/`Slow` 不受 DR | ✅ D-24/B-9 |
+
+---
+
+## 二十一、扩展机制
+
+✅ [D-27](DESIGN_DECISIONS.md)。本节定义 [AFFIX_AND_SYNERGY](AFFIX_AND_SYNERGY.md) 与 [TACTICS](TACTICS.md) 所需、而 v2.0 内核尚未提供的机制。
+
+**入选判据**：只需**新增字段或新增挂钩点**即可实现。任何需要改动内核基础语义（时间 / 空间 / 实体 / 阵营）的机制**不在本节**，已在 D-27 中裁剪并给出等效替代。
+
+### 21.1 护盾（Shield）
+
+本批唯一需要动伤害管线的机制。
+
+**字段**：`BattleUnit.Shield : int`，初值 `0`。
+
+**管线插入点**——[11.2](#112-单目标伤害结算) 步骤 4 取整后、步骤 5 扣血前：
+
+```
+── 4.5 护盾吸收 ───────────────────────────
+absorbed = min(tgt.Shield, final)
+tgt.Shield -= absorbed
+final      -= absorbed
+if absorbed > 0: Emit(ShieldAbsorb{tgt, absorbed})
+```
+
+**边界裁定 [补全]**：
+
+| 情形 | 裁定 | 理由 |
+|---|---|---|
+| 护盾完全吸收（`final == 0`） | **仍触发受击退火与受击回怒** | 单位确实被命中了；且这关系到守卫流"挨打攒大"的资源循环 |
+| 护盾是否吸收 DOT 跳伤 | **吸收** | 赛博血脉(2) 的"免疫 DOT"是一条独立免疫，与吸收无关 |
+| 护盾是否自然衰减 | **不衰减** | |
+| 跨波次 | **清空**（与状态效果一致） | |
+| 多来源护盾 | **数值相加**；上限取各来源上限的**最大值** | |
+| 护盾是否受受伤乘区影响 | **否** | 乘区已在步骤 3 作用于 `final`，护盾吸收的是已减免后的值 |
+
+**挂钩**：`Modifiers.GrantShield(u, amount, cap)`，由 `IActionModifier` 在 Tick 或事件时调用。
+
+### 21.2 生命吸取（Lifesteal）
+
+**挂钩**：`GetLifestealRatio(src, tgt) → float`，默认 `0`。
+
+```
+// ApplyDamage 步骤 5 之后
+ratio = Modifiers.GetLifestealRatio(src, tgt)
+if ratio > 0 && !payload.IsReflected:
+    heal = max(1, (int)floor(final * ratio))
+    src.Hp = min(src.MaxHp, src.Hp + heal)
+    Emit(Lifesteal{src, heal})
+```
+
+**边界 [补全]**：
+
+| 情形 | 裁定 |
+|---|---|
+| DOT 跳伤是否触发吸血 | **否** —— 否则 DOT 流会获得无成本的永久续航 |
+| 反射伤害是否触发吸血 | **否** |
+| 治疗溢出 | 丢弃 |
+| 吸血是否受 `HealingReceived` 影响 | **否** —— 它不是治疗，是伤害转化 |
+
+### 21.3 反射伤害（Reflect）
+
+**挂钩**：`GetReflectRatio(tgt, src) → float`，默认 `0`。
+
+```
+// ApplyDamage 步骤 5 之后
+ratio = Modifiers.GetReflectRatio(tgt, src)
+if ratio > 0 && !payload.IsReflected && src.Alive:
+    ApplyDamage(tgt, src, ratio, pen: 0, statuses: [], isReflected: true)
+```
+
+> ⚠ **防循环铁律**：`DamagePayload` 新增 `IsReflected : bool` 标记。被标记的伤害**不得**再触发反射、吸血、退火与回怒。否则两个互带反射的单位会进入无限递归。
+
+### 21.4 驱散（Dispel）
+
+**字段**：`StatusEffect.IsDispellable : bool`。
+
+| 状态 | 可驱散 |
+|---|:---:|
+| `Stun` / `Freeze` / `Silence` / `Slow` | ✅ |
+| `Burn` / `Poison` / `Bleed` | ✅ |
+| `Invulnerable` / `Stealth` / `Taunt` | ❌（机制性状态，非减益） |
+
+**[补全]** 驱散 N 个时，按 `StatusType` **枚举声明顺序**取前 N 个可驱散项，保证确定性。不按剩余时长或强度排序。
+
+### 21.5 无敌（Invulnerable）
+
+**新状态** `Invulnerable`。
+
+**管线插入点**——[11.2](#112-单目标伤害结算) **最前置**（步骤 1 之前）：
+
+```
+if tgt.HasStatus(Invulnerable):
+    Emit(DamageNullified{src, tgt})
+    return          // 不扣盾、不扣血、不退火、不回怒、不施加状态
+```
+
+| 边界 | 裁定 |
+|---|---|
+| 是否阻止 DOT 跳伤 | **是** |
+| 是否受硬控 DR 约束 | **否** —— 它不是控制，不进入 DR 计数 |
+| 是否可被驱散 | **否** |
+
+### 21.6 阈值斩杀（Execute）
+
+**挂钩**：`GetExecuteThreshold(src, tgt) → float`，默认 `0`。
+
+**管线插入点**——[11.2](#112-单目标伤害结算) 步骤 8 死亡判定**之前**：
+
+```
+if !payload.IsDot && !payload.IsReflected:
+    threshold = Modifiers.GetExecuteThreshold(src, tgt)
+    if threshold > 0 && tgt.Hp > 0 && (tgt.Hp / tgt.MaxHp) < threshold:
+        tgt.Hp = 0
+        Emit(Execute{src, tgt})
+```
+
+> ⚠ **三条硬约束**（配平要求，见 [D-27](DESIGN_DECISIONS.md)）：
+> 1. **仅直接伤害触发**——DOT 与反射伤害不触发。否则每 2 秒一跳的 DOT 会让斩杀线变成"敌人血量一到阈值立即死"，等效于全场敌人有效血量直接砍掉一个阈值且无视护甲；
+> 2. **单次伤害结算时的一次判定**，不是常驻光环；
+> 3. 斩杀**不受**护甲、元素、受伤乘区影响，但**必须发生在一次成功造成伤害之后**（不能对未被攻击的单位生效）。
+
+### 21.7 资源授予（Grant Mana / Rage）
+
+无需新机制——`Mana` / `Rage` 字段已存在。仅需技能效果类型：
+
+```
+GrantMana(target, amount)  →  target.Mana = min(100, target.Mana + amount)
+GrantRage(target, amount)  →  target.Rage = min(RageCap, target.Rage + amount)
+```
+
+**[补全]** `RageCap` 默认 `100`，但可被 `Modifier` 提升（见 21.11 与 TACTICS 12 的底牌留置）。
+
+### 21.8 单位等级标记（Rank）
+
+**字段**：`UnitSnapshot.Rank : enum { Normal, Elite, Boss }`，默认 `Normal`。
+
+> ⚠ 内核**不据此改变任何计算**。它只是一个供 `Modifier` 与战术指令条件读取的标记位，符合[第十三节](#十三标签与修正器)"内核不解释语义"的原则。
+
+### 21.9 隐匿（Stealth）
+
+**新状态** `Stealth`。
+
+**作用点**——[第十节](#十目标选取规则) `ResolveTargets`：
+
+| `TargetMode` | 隐匿单位是否可被选中 |
+|---|:---:|
+| `Single` | ❌ **过滤掉** |
+| `FrontRow` / `BackRow` / `MiddleColumn` / `AllEnemies` / `RandomN` | ✅ **仍命中** |
+
+语义与 AFFIX 暗影(2) 的原文"无法被选为**单一目标**"完全一致。
+
+**边界 [补全]**：
+
+| 情形 | 裁定 |
+|---|---|
+| 隐匿单位主动出手后 | **立即解除隐匿**（否则暗影(2) 的"首次攻击 200%"无法收束） |
+| 敌方全部隐匿时 | `Single` **回退为不过滤**，避免无目标空过 |
+| 隐匿单位是否可被治疗/增益选中 | **可以**（仅过滤敌对 `Single`） |
+
+### 21.10 嘲讽（Taunt）
+
+**新状态** `Taunt`，携带 `SourceId` = 嘲讽者的 `UnitId`。
+
+**作用点**——`ResolveTargets` 的 `Single` 模式，在 [10.1](#101-默认单体目标规则) 最近优先规则**之前**：
+
+```
+t = tgt.Statuses.Find(Taunt)
+if t != null && Unit(t.SourceId).Alive:
+    return [ Unit(t.SourceId) ]      // 强制指向嘲讽者
+```
+
+> ⚠ **不需要威胁值系统**。嘲讽实现为"强制目标覆盖"，成本极低，且避免引入一整套仇恨累积/衰减逻辑。
+
+**边界 [补全]**：
+
+| 情形 | 裁定 |
+|---|---|
+| 嘲讽者阵亡 | 状态立即失效，回退到 10.1 默认规则 |
+| 多重嘲讽 | 取**剩余时长最长**者；并列取 `SourceId` **最小**者 |
+| 是否影响 AOE | **否**，只影响 `Single` |
+| 是否受 DR 约束 | **否**（不剥夺行动权，只改目标） |
+
+### 21.11 状态枚举与事件流增补
+
+**状态枚举扩充**（[14.1](#141-状态实例结构)）：
+
+```
+StatusType = { Stun, Freeze, Silence, Slow,        // 原有控制类
+               Burn, Poison, Bleed,                // 原有 DOT 类
+               Invulnerable, Stealth, Taunt }      // 本节新增机制类
+```
+
+机制类状态的共同特征：**不可驱散、不受 DR 约束、不产生 DOT 跳伤**。
+
+**事件流增补**（[第十九节](#十九事件流接口)）：
+
+| 事件 | 载荷 |
+|---|---|
+| `ShieldAbsorb` | `tgtId, absorbed` |
+| `Lifesteal` | `srcId, amount` |
+| `Reflect` | `srcId, tgtId, amount` |
+| `Dispel` | `tgtId, statusType` |
+| `DamageNullified` | `srcId, tgtId` |
+| `Execute` | `srcId, tgtId` |
+
+### 21.12 ⛔ 明确不实现的 8 项机制
+
+以下机制需改动内核基础语义，**首发不实现**。等效替代方案见 [D-27](DESIGN_DECISIONS.md)。
+
+| 机制 | 为什么不做 |
+|---|---|
+| **射程 / 格距 / 前排阻挡** | 要给所有 `TargetMode` 重新定义阻挡语义，牵一发动全身 |
+| **施法引导 / 可打断窗口** | 出手当前是**原子的**；加吟唱时间等于让出手可被中途取消，确定性复杂度大幅上升 |
+| **召唤物** | 需独立生命周期、独立 ATB、`UnitId` 分配、死亡处理与确定性排序 |
+| **位移 / 瞬移** | 接敌后移速归零（[5.2](#52-接敌阶段contact)），引入移动要改整个空间推进逻辑 |
+| **伤害延后结算** | 需待结算伤害池，与确定性、DOT、死亡判定三方交互，风险最高 |
+| **阵营转换（魅惑）** | 临时改 `Side` 会影响索敌、羁绊统计与胜负判定（被夺取的我方单位是否计入全灭？） |
+| **弹道投射物** | 内核伤害是瞬时的，无飞行物概念 |
+| **局内复活** | 与 ✅ [D-09](DESIGN_DECISIONS.md) 的"阵亡 → 重伤 → 救治"经济直接冲突 |
+
+> 这些机制并非永久排除。`召唤物`已在 [HERO_VESSEL](HERO_VESSEL_SYSTEM_SPEC.md) 轴一「异步并发代理状态机」中预留了设计位，可在首发验证玩法后作为独立版本目标引入。
 
 ---
 
@@ -1044,10 +1448,18 @@ class BattleRng {
 
 | 编号 | 风险 | 状态 |
 |:---:|---|---|
+| 编号 | 风险 | 状态 |
+|:---:|---|---|
 | **B-1** | ~~手操带宽超载~~ | ✅ D-04=A 彻底解决（零输入） |
 | **B-2** | ~~蓄力 DPS 负收益~~ | ✅ 蓄力机制已废除 |
 | **B-5** | ~~怒气悬空~~ | ✅ D-04b 重新定性为大招资源（怒气满自动释放本命大招） |
+| **B-6** | ~~护甲常数不随等级缩放~~ | ✅ D-24 已落地 —— `K = 800 + 20 × Level`，见 [12.3](#123-护甲收益曲线--d-24b-6) |
+| **B-8** | ~~DOT 不随成长缩放~~ | ✅ D-24 已落地 —— 混合公式 `MaxHp × pct + Atk × 0.2`，见 [12.4](#124-dot-跳伤公式--d-24b-8) |
+| **B-9** | ~~控制无递减~~ | ✅ D-24 已落地 —— 硬控 DR `100/50/25/免疫`，见 [14.5](#145-硬控递减dr--d-24b-9) |
 | **B-11** | ~~复活削弱难度信号~~ | ✅ D-09 废除复活机制 |
+| **B-13** | ~~绝对伤害是二元开关~~ | ✅ D-24 已落地 —— 改为连续穿透率 `Pen`，见 [12.2](#122-伤害公式--d-24b-13) |
+| **B-14** | ~~中毒跑不完一个周期~~ | ✅ D-24 已落地 —— 改为 10s / 每跳 4%，见 [14.3](#143-持续伤害类dot) |
+| **B-15** | ~~AI 质量成为体验瓶颈~~ | ✅ D-04d 已落地 —— Gambit 战术指令，见 [TACTICS.md](TACTICS.md) |
 
 以下为**仍然存在**的风险：
 
@@ -1063,29 +1475,17 @@ class BattleRng {
 
 **D-08 后价值上升**：站位不再由职业隐含决定，布阵是玩家仅存的战场表达手段之一。
 
-### B-6 护甲常数不随等级缩放
-
-`K = 1500` 固定 → 低等级护甲近乎废属性，高等级压倒性。建议 `K = 800 + 20 × Level`。
-
 ### B-7 技能系统可能形同虚设 ⚠ 风险上升
 
 首次战技需 4 次普攻（速度 200 时 4 秒）。✅ [D-04c](DESIGN_DECISIONS.md) 把战斗压到 20~40 秒后，窗口更紧张。
 
 **必须验证**：无头模拟统计**每场战斗人均战技/大招释放次数**。低于 2 则需调整（降阈值 / 提高回蓝 / 给开局初始资源）。**列为首要验证项。**
 
-### B-8 DOT 不随成长缩放
-
-流血固定"每 2 秒扣最大生命 5%"，满级与 1 级完全相同。抗膨胀是优点，成长无反馈是硬伤。建议混合式 `MaxHp × 3% + Atk × 0.2`。
-
-### B-9 控制无递减
-
-眩晕/冰冻完全冻结行动条，无 DR 或免疫窗口。多个控制单位可永久锁死玩家核心素体。
-
-**全自动下风险加剧**——玩家连"手动打断"这个最后手段都没有，只能眼睁睁看着。**建议必修**：同类控制 DR（100%/50%/25%/免疫，5s 内衰减）。
-
 ### B-10 治疗 AI 与残血增伤冲突
 
-`LowestHpAlly` 无阈值释放，会持续优先治疗血量百分比最低的单位——而"突击"流派正是靠低血量吃增伤。建议治疗 AI 对携带 `突击` 标签的单位加权重折扣。
+`LowestHpAlly` 无阈值释放，会持续优先治疗血量百分比最低的单位——而装备了**残血增伤类词条**（如「狂化涌流」，见 [AFFIX 2.2](AFFIX_AND_SYNERGY.md)）的单位正是靠低血量吃增伤。
+
+**现状**：✅ [D-04d](DESIGN_DECISIONS.md) 的战术指令已提供缓解手段（玩家可为支援单位配置治疗阈值），且 ✅ [D-26](DESIGN_DECISIONS.md) 后残血增伤不再是职业天赋而是**可选词条**——玩家自己选择要不要走这条路，冲突从"系统强加"降级为"玩家自担"。默认 AI 仍建议对携带该类词条的单位施加治疗权重折扣。
 
 ### B-12 速度是复合超级属性
 
@@ -1093,17 +1493,22 @@ class BattleRng {
 
 **必须验证**：无头模拟对比"每 1 点速度"与"每 1 点攻击"对 TTK 的边际贡献。
 
-### B-13 绝对伤害是二元开关
+### B-16 扩展机制缺口 ✅ 已闭环
 
-对 3000 护甲目标是常规技能的 3 倍。建议改为连续量「无视 X% 护甲」。
+[AFFIX_AND_SYNERGY.md](AFFIX_AND_SYNERGY.md) 与 [TACTICS.md](TACTICS.md) 曾引用 19 项本文档未定义的机制。✅ [D-27](DESIGN_DECISIONS.md) 已按"是否需改动内核基础语义"分类处置：
 
-### B-14 中毒持续时间超出战斗时长 ⚠ 已修复
+| 处置 | 条数 | 位置 |
+|---|:---:|---|
+| ✅ **实现** | 10 | [第二十一节 扩展机制](#二十一扩展机制) |
+| 🔄 **转化**（零新机制） | 1 | 怒气暂扣 → `RageCap` 阈值调整 |
+| ✂ **裁剪 + 等效替代** | 8 | [21.12](#2112--明确不实现的-8-项机制) |
 
-中毒持续 20 秒，而 ✅ [D-04c](DESIGN_DECISIONS.md) 目标战斗时长 20~40 秒。**已定案（✅ D-24）**：缩短至 10s / 每跳 4%（共 5 跳总量 20%），解决跳不完的问题。
+**两处决策冲突亦已解决**：
 
-### B-15 AI 质量成为体验瓶颈 ⚠ 已闭环
-
-D-04 全自动后玩家无法纠正 AI 的任何决策，**AI 质量直接等于游戏质量**。✅ [D-04d](DESIGN_DECISIONS.md) 引入战前 Gambit 战术指令系统（每素体 2 槽），详见 [TACTICS.md](TACTICS.md)。
+| 冲突 | 处置 |
+|---|---|
+| 超武 05 与守卫(6) 的**局内免死**绕过 D-09 战损经济 | ✅ D-27：保留免死观感，但**战后仍进入重伤**；守卫(6) 的免死由"每人 1 次"收为"**全队共享 1 次**" |
+| TACTICS 12 要求**暂扣满怒大招**，与 D-04b 冲突 | ✅ D-27：改为**非精英战时怒气阈值提升至 150**，精英出现时回落至 100 —— 怒气跨波保留，阈值一落即倾泻，零新机制 |
 
 ---
 

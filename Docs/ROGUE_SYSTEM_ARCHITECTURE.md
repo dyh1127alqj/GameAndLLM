@@ -45,7 +45,9 @@
 
 ## 二、总体系统架构与边界全景
 
-系统采用严格单向依赖的**整洁架构（Clean / Hexagonal Architecture）**，明确划分为五个边界域：
+系统采用严格单向依赖的**整洁架构（Clean / Hexagonal Architecture）**，明确划分为**四个**边界域：
+
+> 原 L4「LLM 智能与叙事驱动层」已整层删除（✅ [D-20](DESIGN_DECISIONS.md)）——游戏运行时为**纯单机、离线、确定性**架构，不调用任何 LLM。原表现层由 L5 顺延为 L4。
 
 ```mermaid
 flowchart TD
@@ -132,7 +134,7 @@ public record UnitSnapshot {
     public Element  Element  { get; init; }   // 元素克制环，内核唯一认识的"属性"
     public IReadOnlySet<string> Tags { get; init; }  // 由插槽装配派生
     public SkillDef ActiveSkill { get; init; }       // 战技（法力驱动）
-    public SkillDef UltimateSkill { get; init; }     // 大招（怒气驱动）⬜ 见 D-04b
+    public SkillDef UltimateSkill { get; init; }     // 大招（怒气驱动，满怒自动释放）✅ D-04b
 }
 
 // 模拟器执行接口
@@ -150,7 +152,7 @@ public class BattleResult {
     public IReadOnlyList<BattleEvent> EventLog { get; init; } // 完整事件流
 }
 ```
-Rogue 层接收此结果后，负责更新素体健康状态（含**重伤标记**，⬜ [D-09](DESIGN_DECISIONS.md)）、结算奖励并推进节点。
+Rogue 层接收此结果后，负责更新素体健康状态（含**重伤标记**，✅ [D-09](DESIGN_DECISIONS.md)）、结算奖励并推进节点。
 
 ### 4.2 统一修正器管道（Modifier Pipeline）
 
@@ -161,9 +163,9 @@ Rogue 层接收此结果后，负责更新素体健康状态（含**重伤标记
 | **`IStatModifier`** | 单位属性初始化时 | 「携带 `守护` 标签的单位生命上限 +20%」 |
 | **`IDamageModifier`** | 伤害计算管线中 | 「对已中 DOT 的目标伤害 +25%」 |
 | **`IActionModifier`** | 行动条与资源充能时 | 「开战时全员初始法力 +30」 |
-| **`IHealModifier`** | 治疗结算时 | 「本世界治疗效果 -20%」（世界法则 W-01）⬜ 见 D-12 |
+| **`IHealModifier`** | 治疗结算时 | 「本世界治疗效果 -20%」（世界法则 W-01）✅ D-12 |
 
-**命名约定**（[D-21](DESIGN_DECISIONS.md) 待决，暂用此口径）：
+**命名约定** ✅ [D-21](DESIGN_DECISIONS.md)（完整术语表见 [WORLD_SETTING 第二节](WORLD_SETTING.md)）：
 
 | 中文 | 英文 | 定义 |
 |---|---|---|
@@ -173,7 +175,7 @@ Rogue 层接收此结果后，负责更新素体健康状态（含**重伤标记
 
 > ⛔ **禁止使用"词缀"一词**——它与"词条"一字之差、指代不同，在中文文档与代码注释中极易混淆。
 
-> ⚠ 示例中不得出现"暴击"——内核**当前没有暴击系统**（[D-10](DESIGN_DECISIONS.md) 待决，推荐不引入）。本节前一版的示例已据此更换。
+> ⛔ 示例中不得出现"暴击"——✅ [D-10](DESIGN_DECISIONS.md) 已定案**全局不引入暴击系统**，以保持单场胜负的高可归因性。若后续需要，仅作为独占词条机制挂载。
 
 ---
 
@@ -197,7 +199,7 @@ Rogue 层接收此结果后，负责更新素体健康状态（含**重伤标记
 
 4. **续航与战损机制（Health Economy）**：
    - 战损跨节点沉淀，强化营地与商店节点的战略价值；
-   - ⬜ 具体方案见 [D-09](DESIGN_DECISIONS.md)（待决）。
+   - ✅ [D-09](DESIGN_DECISIONS.md) 已定案：血量跨节点继承，阵亡转【重伤】本局不可上阵，营地/黑市消耗信用点救治（费用随累计重伤次数递增）；全局「任务耐久」整项废除，失败条件唯一收敛为「可出战素体不足 5 人且无力救治」。
 
 ---
 
