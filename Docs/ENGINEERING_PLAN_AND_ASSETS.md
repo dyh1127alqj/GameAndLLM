@@ -1,346 +1,394 @@
-# GameAndLLM 生产级落地总案：待实施清单 · 工程计划 · 数字资产清单
+# GameAndLLM 生产级落地总案 (v2.0 终局版)
 
-> **文档状态**：✅ **正式定案** ｜ **当前版本**：v1.0  
-> **基准决议**：全面对齐 [DESIGN_DECISIONS.md](DESIGN_DECISIONS.md)（D-01 ~ D-27 全部决议）、[BATTLE_CORE.md](BATTLE_CORE.md) v2.0、[AFFIX_AND_SYNERGY.md](AFFIX_AND_SYNERGY.md)、[TACTICS.md](TACTICS.md)、[WORLD_SETTING.md](WORLD_SETTING.md)  
-> **核心定位**：本项目名为 `GameAndLLM`，意为**「尝试使用 LLM 作为研发辅助工具与工程 Agent 来开发游戏」**；游戏本体为 **100% 纯单机、离线、确定性**的自走棋肉鸽卡牌游戏，技术栈为 **纯 .NET 8 / C# 确定性无头内核 + Godot 4.x (.NET) 表现层**。
+> **版本**：v2.0 (全量审计与工业级防御版)  
+> **生效时间**：2026-09-18  
+> **基准决策**：D-01 ~ D-27 全量闭环  
+> **对齐规格**：`BATTLE_CORE v2.0`、`AFFIX_AND_SYNERGY`、`TACTICS`、`WORLD_SETTING`  
+> **技术栈路线**：纯 .NET 8 / C# 12 确定性无头内核 + Godot 4.x (.NET) 渲染表现层
 
 ---
 
 ## 目录
-1. [工程解决方案拓扑 (Solution Architecture)](#一工程解决方案拓扑-solution-architecture)
-2. [完整待实施工程清单 (WBS & Implementation Checklist)](#二完整待实施工程清单-wbs--implementation-checklist)
-   - [2.1 确定性无头战斗内核 (GameCore.Battle)](#21-确定性无头战斗内核-gamecorebattle)
-   - [2.2 单局肉鸽状态机与构筑服务 (GameCore.Rogue)](#22-单局肉鸽状态机与构筑服务-gamecorerogue)
-   - [2.3 Godot 4.x 表现层驱动 (GodotApp)](#23-godot-4x-表现层驱动-godotapp)
-   - [2.4 自动化单测与蒙特卡洛验证 (GameCore.Tests)](#24-自动化单测与蒙特卡洛验证-gamecoretests)
-3. [工程排期计划与阶段门禁 (5-Week Roadmap & Quality Gates)](#三工程排期计划与阶段门禁-5-week-roadmap--quality-gates)
-   - [3.1 Sprint 1 (Week 1)：纯 C# 战斗内核闭环 (门禁 G1)](#31-sprint-1-week-1纯-c-战斗内核闭环-门禁-g1)
-   - [3.2 Sprint 2 (Week 2)：肉鸽状态机、插槽与超武 (门禁 G2)](#32-sprint-2-week-2肉鸽状态机插槽与超武-门禁-g2)
-   - [3.3 Sprint 3 (Week 3)：Godot 4.x 表现层与 MVP 闭环 (门禁 G3)](#33-sprint-3-week-3godot-4x-表现层与-mvp-闭环-门禁-g3)
-   - [3.4 Sprint 4 (Week 4)：双世界内容实装与数值平配 (门禁 G4)](#34-sprint-4-week-4双世界内容实装与数值平配-门禁-g4)
-   - [3.5 Sprint 5 (Week 5)：美术音效注入、存档与封包发布 (门禁 G5)](#35-sprint-5-week-5美术音效注入存档与封包发布-门禁-g5)
-4. [数字资产完整清单 (Digital Asset Ledger & Schemas)](#四数字资产完整清单-digital-asset-ledger--schemas)
-   - [4.1 角色素体资产 (首发 24 款)](#41-角色素体资产-首发-24-款)
-   - [4.2 词条卡牌、徽章与图标资产 (62 枚)](#42-词条卡牌徽章与图标资产-62-枚)
-   - [4.3 场景背景与视觉特效资产 (VFX & Shader)](#43-场景背景与视觉特效资产-vfx--shader)
-   - [4.4 音频与音效资产 (Audio & Sound FX)](#44-音频与音效资产-audio--sound-fx)
-   - [4.5 结构化配置数据表清单 (Data Schemas)](#45-结构化配置数据表清单-data-schemas)
+1. [系统拓扑与工程规范](#一系统拓扑与工程规范)
+2. [第一部分：底层工业级防线与待实施清单 (WBS)](#二第一部分底层工业级防线与待实施清单-wbs)
+   - [2.1 七大工程防线深度落地规格](#21-七大工程防线深度落地规格)
+   - [2.2 WBS 具体任务实施分解矩阵 (共 36 项)](#22-wbs-具体任务实施分解矩阵-共-36-项)
+3. [第二部分：工程排期计划 (5 周 Sprint 与门禁)](#三第二部分工程排期计划-5-周-sprint-与门禁)
+   - [3.1 各冲刺周期目标与严格门禁准则](#31-各冲刺周期目标与严格门禁准则)
+4. [第三部分：全量数字资产明细与量产 SOP](#四第三部分全量数字资产明细与量产-sop)
+   - [4.1 角色素体资产表 (首发 24 款)](#41-角色素体资产表-首发-24-款)
+   - [4.2 图标、徽章与场景资产明细账](#42-图标徽章与场景资产明细账)
+   - [4.3 AI 辅助数字资产工业化量产 SOP](#43-ai-辅助数字资产工业化量产-sop)
 
 ---
 
-## 一、工程解决方案拓扑 (Solution Architecture)
+## 一、系统拓扑与工程规范
+
+### 1.1 解决方案目录树
 
 ```
 GameAndLLM.sln
-├── 📂 src/GameCore/                         [纯 .NET 8 类库，零 Godot 依赖]
-│   ├── 📂 Battle/                          [L1 确定性战斗内核]
-│   │   ├── Model/                          UnitSnapshot, SkillDef, StatusEffect, TacticsTuple
-│   │   ├── Time/                           FixedTickManager (60Hz, 90s 限时)
-│   │   ├── Targeting/                      TargetResolver (7种模式, 隐匿/嘲讽过滤)
-│   │   ├── Pipeline/                       DamagePipeline, HealPipeline, InterceptorSorter
-│   │   ├── Math/                           CombatMath (分段软钳制, 护甲线性K, 混合DOT)
-│   │   ├── Extensions/                     ShieldModule, ExecutionCheck, StatusEngine (第21节10大机制)
-│   │   ├── Interceptors/                   IPipelineInterceptor (四阶权能拦截器)
-│   │   ├── Tactics/                        TacticsEvaluator (四元组数据驱动求值器)
-│   │   └── Events/                         IBattleEventListener, BattleResult, DamageEvent
-│   ├── 📂 Rogue/                           [L2 单局肉鸽状态机]
-│   │   ├── Map/                            RogueMapGenerator (三轨拓扑, 跨界裂隙, 纯种子驱动)
-│   │   ├── Inventory/                      SocketManager (D-25 核心槽恒为2/总槽3~6), BackpackService (15格)
-│   │   ├── Synergy/                        SynergyEvaluator (六职业2/4/6 + 血脉2/4), FusionEngine (12超武)
-│   │   ├── State/                          RogueRunState, InjuryService (D-09 跨节点继承与重伤经济)
-│   │   └── Events/                         RogueEventManager, EventDef (静态确定性异象事件)
-│   └── 📂 Meta/                            [L3 局外元养成]
-│       └── VesselRoster, LegacySeal, EchoPointEconomy
-├── 📂 tests/GameCore.Tests/                 [xUnit 自动化测试工程]
-│   ├── BattleCoreTests/                    管线单测、软钳制验收、控制递减(5s)单测
-│   ├── MonteCarloSimulator/                10,000 场无头蒙特卡洛（验证 B-7 释放次数 & B-12 速度平衡）
-│   └── DeterminismReplayTests/             1x/2x/4x 多倍速事件哈希完全一致性回归
-└── 📂 client/GodotApp/                      [L4 Godot 4.x .NET C# 表现层工程]
-    ├── project.godot                       Godot 工程配置
-    ├── Scenes/                             Battlefield2x5.tscn, RogueMapView.tscn, GambitSetup.tscn
-    ├── Scripts/                            BattleViewController (IBattleEventListener 消费者)
-    ├── Shaders/                            CRTScanline.gdshader, HitFlash.gdshader, InkFlow.gdshader
-    └── Assets/                             Textures, Icons, Audio
+├── 📂 src/
+│   └── 📂 GameCore/                        # 纯 .NET 8 类库 (零 Godot 依赖，可独立无头运行)
+│       ├── Battle/                         # 确定性战斗内核
+│       │   ├── Model/                      # UnitSnapshot, SkillDef, TacticsTuple (只读不可变)
+│       │   ├── Time/                       # FixedTickManager, StepClock (60Hz 严格定频)
+│       │   ├── Targeting/                  # TargetResolver (含目标锁定黏性，消除震荡)
+│       │   ├── Pipeline/                   # 8步伤害管线, 独立双治疗乘区
+│       │   ├── Math/                       # 整数千分比/定点数, 分段双曲软钳制
+│       │   ├── Extensions/                 # 第21节 10 大扩展机制 (护盾/斩杀/无敌等)
+│       │   ├── Interceptors/               # 四阶权能拦截器按序短路调度
+│       │   ├── Tactics/                    # Gambit 数据驱动四元组求值器
+│       │   └── Events/                     # 零堆分配 (Zero-GC) 事件结构体与双缓冲环形队列
+│       ├── Rogue/                          # 单局肉鸽状态机
+│       │   ├── Map/                        # 三轨地图拓扑生成器 (基于种子 Rng 绝对可复现)
+│       │   ├── Inventory/                  # SocketManager (核心槽恒2/总槽3~6), 15格背包, 精炼
+│       │   ├── Synergy/                    # SynergyEvaluator (6职业2/4/6+血脉2/4), FusionEngine(12超武)
+│       │   ├── State/                      # RogueRunState, D-09 重伤战损流转与阶梯救治
+│       │   └── EventData/                  # EventDef 静态异象事件解析器
+│       └── Meta/                           # 局外元养成域
+│           └── State/                      # VesselRoster, EchoPoints, LegacySeal
+├── 📂 tools/
+│   └── 📂 GameCore.Validator/              # 离线数据校验 CLI (JSON Schema 静态扫描网关)
+│       ├── Program.cs
+│       └── Rules/                          # 词条ID闭环、超武配方存在性、数值越界检测
+├── 📂 tests/
+│   └── 📂 GameCore.Tests/                  # xUnit 高性能并发测试套件
+│       ├── BattleCoreTests/                # 伤害管线数学断言、护甲K线性、软钳制、控制递减
+│       ├── MonteCarloSimulator/            # 多核并行压测 (10,000 / 100,000 场无头对局)
+│       ├── DataIntegrityTests/             # 配置表合规性自动化拦截
+│       └── DeterminismTests/               # 跨平台 (x86/ARM) 逐帧状态哈希强一致性回归
+└── 📂 client/
+    └── 📂 GodotApp/                        # Godot 4.x (.NET 8) 客户端工程 (事件消费者)
+        ├── project.godot
+        ├── Scenes/                         # 场景树 (Battlefield2x5, RogueMapView, GambitSetup)
+        ├── Controllers/                    # 驱动控制器 (BattleViewController, 插值累加器)
+        └── Shaders/                        # CanvasItemShader (CRT扫描线, 水墨剑气, 受击闪白)
 ```
 
----
-
-## 二、完整待实施工程清单 (WBS & Implementation Checklist)
-
-### 2.1 确定性无头战斗内核 (GameCore.Battle)
-
-| 编号 | 模块 | 实现类 / 文件 | 核心功能与职责边界 | 关联决议 / 章节 |
-|:---:|---|---|---|:---:|
-| **B-01** | 实体模型 | `Model/UnitSnapshot.cs` | 不可变结构体；动态属性：`Hp`, `MaxHp`, `Mana`(0~100), `Rage`(0~100), `Gauge`(0~1.0), `Speed`, `Atk`, `Armor`, `Pen`；`Rank` 标记（Normal/Elite/Boss）。 | BATTLE_CORE 3.1 |
-| **B-02** | 技能契约 | `Model/SkillDefinition.cs` | `ActiveSkill`（法力驱动）与 `InnateUltimate`（怒气驱动本命大招）；技能耗费、冷却与目标选择模式。 | D-04b, D-08c |
-| **B-03** | 60Hz 时钟 | `Time/FixedTickManager.cs` | 严格每步 `FixedDeltaTime = 1/60s`；单位 ATB 推进：`Gauge += Speed × Delta`；90s 限时硬终止；倍速通过步频实现，严禁改变步长。 | D-04c, BATTLE_CORE 5.3 |
-| **B-04** | 自动出手 | `BattleSim.StepActions.cs` | 当 `Gauge >= 1.0` 触发行动判定：大招 (怒气&ge;100) &gt; 战技 (法力&ge;100) &gt; 普攻；普攻回复怒气+10、战技回复怒气+20、受击回复怒气+5。 | D-04b, BATTLE_CORE 8.2 |
-| **B-05** | 索敌解析 | `Targeting/TargetResolver.cs` | 实现 7 种 `TargetMode`；前排优先对位；阻断隐匿单位被 `Single` 命中；优先锁定被嘲讽目标；敌全隐匿时保底。 | BATTLE_CORE 10.1, 21.9 |
-| **B-06** | 伤害管线 | `Pipeline/DamagePipeline.cs` | 8 步管线：基础威力 &rarr; 穿甲与护甲衰减 `K = 800 + 20 × Level` &rarr; 穿透率 `Pen ∈ [0,1]` &rarr; 元素 1.67 摆幅 &rarr; 伤害加深 &rarr; 伤害减免。 | D-24, BATTLE_CORE 11.2 |
-| **B-07** | 治疗管线 | `Pipeline/HealPipeline.cs` | 施法方 `HealingDone` × 受击方 `HealingReceived` 独立双乘区，各自默认 1.0。 | D-12, BATTLE_CORE 11.3 |
-| **B-08** | 软钳制器 | `Math/CombatMath.cs` | 分段双曲软钳制：`raw <= soft` 恒等；`raw > soft` 双曲平滑渐近 `Cap`；DOT 混合公式：`MaxHp × pct + Atk × 0.20`。 | D-13, BATTLE_CORE 6.2 |
-| **B-09** | 扩展机制 | `Extensions/ShieldModule.cs` 等 | 实现第 21 节 10 大扩展：护盾扣减、吸血防循环(`IsReflected`)、按枚举序驱散、无敌拦截、12% 直接伤害斩杀、隐匿与嘲讽。 | D-27, BATTLE_CORE 21 |
-| **B-10** | 拦截器管线 | `Interceptors/PipelineInterceptor.cs` | 四阶权能挂钩；按 `AuthorityLevel` 降序 &rarr; `UnitId` 升序执行；首个 true 短路退出。 | D-19, HERO_VESSEL 5.1 |
-| **B-11** | Gambit 求值 | `Tactics/TacticsEvaluator.cs` | 纯函数求值 `(ConditionType, P0, ActionType, A0)` 四元组；支持首发 16 条指令库；非精英战动态调节 `RageCap 100↔150`。 | D-04d, D-27, TACTICS |
-| **B-12** | 事件流发布 | `Events/BattleEventDispatcher.cs` | 实现 `IBattleEventListener` 事件抛出：`DamageEvent`, `HealEvent`, `CastEvent`, `DeathEvent`，提供纯数据快照。 | BATTLE_CORE 19 |
+### 1.2 核心开发军规 (Hard Architectural Rules)
+1. **纯 C# 物理隔离**：`GameCore` 项目严禁添加任何对 `Godot` 命名空间的引用，违者视为架构违规。
+2. **Zero-GC（零堆内存分配）军规**：在每秒 60 次的战斗循环中，禁止在热路径（Hot-Path）中执行任何 `new` 操作，所有高频数据必须使用 `readonly record struct` 或栈上内存。
+3. **确定性数学契约**：禁止在核心战斗计算中依赖平台相关的浮点数计算，一律遵循定点数/整数千分比（Integer Permille）规范，保证跨端重放哈希一致。
 
 ---
 
-### 2.2 单局肉鸽状态机与构筑服务 (GameCore.Rogue)
+## 二、第一部分：底层工业级防线与待实施清单 (WBS)
 
-| 编号 | 模块 | 实现类 / 文件 | 核心功能与职责边界 | 关联决议 / 章节 |
-|:---:|---|---|---|:---:|
-| **R-01** | 插槽管理 | `Inventory/SocketManager.cs` | 落实 **D-25**：核心槽恒为 2（职业与血脉共用）；总槽位 3~6 格依权能与进阶解锁；仅在安全屋/行商安全节点允许插拔。 | D-25, AFFIX 1.1 |
-| **R-02** | 背包服务 | `Inventory/BackpackService.cs` | 15 格备用背包；同名同阶词条 2 合 1 精炼升阶；多余词条分解为信用点。 | D-16, D-25, ROGUE_MAP |
-| **R-03** | 羁绊换算 | `Synergy/SynergyEvaluator.cs` | 严格统计核心槽 `tags`（隔离 `affinity`）；计算六职业 `(2)/(4)/(6)` 档位与双血脉 `(2)/(4)` 档位；生成运行时 `Modifier` 列表。 | D-08a, D-26, AFFIX 2 |
-| **R-04** | 超武融合 | `Synergy/FusionEngine.cs` | 检测 2 枚满阶跨界词条配对；合成概念级超武并腾出 1 个核心槽；管理配方图鉴（已解锁与未解锁剪影）。 | D-15, AFFIX 4 |
-| **R-05** | 三轨拓扑 | `Map/RogueMapGenerator.cs` | 生成单局 1 世界 3 层、每层 6 步的三轨网络；生成普通战斗、险恶遭遇、首领、行商、安全屋、异象与 25% 跨界裂隙节点。 | D-22, ROGUE_MAP 1 |
-| **R-06** | 战损流转 | `State/InjuryService.cs` | 落实 **D-09**：血量跨战斗继承；阵亡转入【重伤】（词条不锁定，可换给替补）；安全屋花费信用点阶梯救治（50&rarr;100&rarr;180...）。 | D-09, D-09a, ROGUE_MAP |
-| **R-07** | 异象事件 | `Events/RogueEventManager.cs` | 解析静态 JSON 事件表；依据 `Rng(seed, nodeId)` 确定性派发选项；执行确定性增益/扣血/掉落。 | WORLD_SETTING 8 |
-| **R-08** | 单局裁判 | `State/RogueRunState.cs` | 维护单局全局状态（信用点、授权点、当前层数步数）；当可出战健康素体 &lt; 5 人且无力救治时，宣告肉鸽任务失败。 | D-09b, D-18 |
+### 2.1 七大工程防线深度落地规格
+
+#### 防线 1：Zero-GC（零堆内存分配）分发管线
+- **值类型事件结构体**：
+  ```csharp
+  // 严禁声明为 class，全部采用栈分配的 readonly record struct
+  public readonly record struct DamageEvent(
+      int SourceUnitId,
+      int TargetUnitId,
+      int FinalDamage,
+      DamageType Type,
+      DamageFlags Flags, // IsCrit, IsExecute, IsReflected
+      int ShieldAbsorbed,
+      int OverkillDamage
+  );
+  ```
+- **双缓冲环形队列（Double-Buffered Ring Buffer）**：
+  ```csharp
+  public sealed class BattleEventQueue
+  {
+      private readonly DamageEvent[] _bufferA = new DamageEvent[2048];
+      private readonly DamageEvent[] _bufferB = new DamageEvent[2048];
+      private int _countA = 0;
+      private bool _usingA = true;
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public void Publish(in DamageEvent evt)
+      {
+          // 环形覆盖或定长写入，无堆内存分配
+          if (_usingA && _countA < _bufferA.Length) _bufferA[_countA++] = evt;
+      }
+
+      // Godot 每帧调用：零拷贝切片导出
+      public ReadOnlySpan<DamageEvent> ConsumeFrameEvents()
+      {
+          _usingA = !_usingA;
+          var span = new ReadOnlySpan<DamageEvent>(_usingA ? _bufferB : _bufferA, 0, _countA);
+          _countA = 0;
+          return span;
+      }
+  }
+  ```
+
+#### 防线 2：整数千分比确定性数学模型 (Integer Permille)
+- **基准常数**：`public const int FP_ONE = 1000;`（即 100% = 1000）。
+- **乘除规范**：
+  - `Mul(int a, int b) => (int)(((long)a * b + 500) / FP_ONE);`
+  - `Div(int a, int b) => (int)(((long)a * FP_ONE) / b);`
+- **护甲减免定点化**：
+  $$K = 800 + 20 \times \text{Level}$$
+  $$\text{DamageFactor} = \frac{K \times 1000}{K + \text{Armor}}$$
+- **分段双曲软钳制 (Soft-Cap)**：
+  ```csharp
+  public static int SoftCapPermille(int raw, int soft, int cap)
+  {
+      if (raw <= soft) return raw;
+      long num = (long)(raw - soft) * (cap - soft);
+      long den = (raw - soft) + (cap - soft);
+      return soft + (int)(num / den);
+  }
+  ```
+
+#### 防线 3：配置数据离线校验网关 (GameCore.Validator)
+- **Schema 强约束**：在 `res://Data/` 下建立 `.schema.json` 文件（`vessels.schema.json`, `affixes.schema.json` 等）。
+- **静态扫描规则集（编译前与 CI 自动化执行）**：
+  1. `CheckBrokenForeignKeys()`：超武配方引用的 `affix_a` 和 `affix_b` 必须存在于词条库中；
+  2. `CheckEnumConsistency()`：素体职业必须严格匹配 6 大职业枚举，严禁历史残留词；
+  3. `CheckNumericBounds()`：所有免伤、暴击、攻速词条必须符合系统软钳制上限阈值。
+
+#### 防线 4：Gambit 战术索敌震荡消除（目标锁定黏性）
+- **索敌黏性规则**：
+  ```csharp
+  public sealed class TargetLockTracker
+  {
+      public int CurrentTargetId { get; private set; } = -1;
+      public int LockedTicksRemaining { get; private set; } = 0;
+      private const int MIN_LOCK_TICKS = 60; // 强制保持 1.0 秒 (60 帧)
+
+      public bool ShouldRetarget(UnitSnapshot self, BattleContext ctx)
+      {
+          if (CurrentTargetId == -1) return true;
+          var target = ctx.FindUnit(CurrentTargetId);
+          if (target == null || target.Hp <= 0) return true; // 目标死亡，立即重选
+          if (target.HasStatus(StatusType.Stealth)) return true; // 目标进入隐匿，强制丢失
+          if (self.HasStatus(StatusType.Taunted)) return true; // 自身被嘲讽，强制转向
+          if (--LockedTicksRemaining <= 0) return true; // 锁定时间耗尽，允许评估更优解
+          return false; // 处于黏性锁定中，禁止跳跃索敌
+      }
+
+      public void LockTarget(int targetId)
+      {
+          CurrentTargetId = targetId;
+          LockedTicksRemaining = MIN_LOCK_TICKS;
+      }
+  }
+  ```
+
+#### 防线 5：多核并行蒙特卡洛平衡模拟器
+- **并发分片调度**：
+  ```csharp
+  public static BenchmarkReport RunMonteCarlo(int totalMatches = 100000)
+  {
+      var results = new ConcurrentBag<BattleResult>();
+      Parallel.For(0, totalMatches, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount }, i =>
+      {
+          var sim = new BattleSim(RngSeed: (uint)(1000000 + i));
+          results.Add(sim.RunToCompletion());
+      });
+      return BenchmarkReport.Aggregate(results);
+  }
+  ```
+- **质量警报门禁**：
+  - 超时平局率 `DrawRate > 1.0%` &rarr; 触发【肉盾输出不足/拖回血】严重警报；
+  - 战斗期望时长 P90 &gt; 65 秒 &rarr; 触发战斗拖沓警报；
+  - 六大职业大羁绊胜率落在 `[35%, 65%]` 之外 &rarr; 触发流派失衡警报。
+
+#### 防线 6：表现层定频累加器与快照平滑插值
+- **Godot 表现层驱动模板**：
+  ```csharp
+  public partial class BattleViewController : Node2D
+  {
+      private const double FIXED_DT = 1.0 / 60.0;
+      private double _accumulator = 0.0;
+      private BattleSim _sim;
+
+      public override void _Process(double delta)
+      {
+          // 支持倍速控制 (1x / 2x / 4x)
+          double timeScale = GameSettings.BattleSpeed;
+          _accumulator += delta * timeScale;
+
+          while (_accumulator >= FIXED_DT)
+          {
+              _sim.Step();
+              _accumulator -= FIXED_DT;
+          }
+
+          // 核心平滑：利用剩余未整除的时间 alpha，对精灵位置与血条缓冲做插值渲染
+          float alpha = (float)(_accumulator / FIXED_DT);
+          RenderInterpolatedState(alpha);
+      }
+  }
+  ```
 
 ---
 
-### 2.3 Godot 4.x 表现层驱动 (GodotApp)
+### 2.2 WBS 具体任务实施分解矩阵 (共 36 项)
 
-| 编号 | 模块 | 场景 / 脚本 | 核心功能与职责边界 | 关联决议 / 章节 |
-|:---:|---|---|---|:---:|
-| **G-01** | 2×5 布阵台 | `Scenes/Battlefield2x5.tscn`<br>`UI/BattlefieldGrid.cs` | 提供 10 格自由站位拖拽放置；后排单位统一自动按 0.85 缩放；按 Y 轴实现动态 Z-Index 深度排序。 | D-07, BATTLE_CORE 4 |
-| **G-02** | 事件消费器 | `Controllers/BattleViewController.cs` | 实现 `IBattleEventListener`：读取内核事件流；Tween 驱动平滑血条缓冲、伤害跳字池、受击震屏与顿帧。 | BATTLE_SYSTEM 6 |
-| **G-03** | 战斗 Shader | `Shaders/HitFlash.gdshader`<br>`Shaders/CRTScanline.gdshader` | 实现受击闪白特效、赛博 CRT 扫描线全屏 Shader、蜀山水墨剑气拖尾着色器。 | WORLD_SETTING 4 |
-| **G-04** | 战术配置台 | `Scenes/GambitSetup.tscn`<br>`UI/GambitSelector.cs` | 每素体 2 槽战术配置 UI；条件与动作下拉选择器；实时校验前置技能合法性。 | TACTICS 5 |
-| **G-05** | 插槽与背包 | `Scenes/VesselDetailView.tscn`<br>`UI/SocketInventoryView.cs` | 核心槽/作战槽/通用槽拖拽镶嵌；15 格背包网格；羁绊徽章点亮动效；超武融合触发引导。 | AFFIX 1, 5 |
-| **G-06** | 三轨大地图 | `Scenes/RogueMapView.tscn`<br>`UI/MapPathGraph.cs` | 渲染三轨 18 步节点拓扑连线；高亮当前可选步进分支；平滑镜头跟随行军推进。 | ROGUE_MAP 1 |
-| **G-07** | 倍速与控制 | `UI/TopBarController.cs` | 1x / 2x / 4x 按钮组与状态持久化记忆；战斗暂停；单局种子复制到剪贴板。 | D-04c, BATTLE_CORE 5.3 |
+| 编号 | 模块分类 | 实施任务名称 | 核心类 / 文件路径 | 验收标准 / 交付物 |
+|---|---|---|---|---|
+| **L1-01** | 内核核心 | 实体数据与不可变模型 | `GameCore/Battle/Model/UnitSnapshot.cs` | 包含动态资源、属性字段、不可变构造 |
+| **L1-02** | 内核核心 | 60Hz 严格定频主循环 | `GameCore/Battle/BattleSim.cs` | 90s 限时、胜负判定、纯内存极速执行 |
+| **L1-03** | 内核数学 | 整数千分比数学工具库 | `GameCore/Battle/Math/CombatMath.cs` | 乘除定点化、分段双曲软钳制、DOT计算 |
+| **L1-04** | 内核索敌 | 目标解析与黏性跟踪器 | `GameCore/Battle/Targeting/TargetResolver.cs` | 7 种索敌模式、隐匿/嘲讽优先、1秒锁定 |
+| **L1-05** | 内核管线 | 8 步伤害计算流水线 | `GameCore/Battle/Pipeline/DamagePipeline.cs` | 护甲K(Lv)、穿透率Pen、元素1.67倍率 |
+| **L1-06** | 内核管线 | 独立双乘区治疗流水线 | `GameCore/Battle/Pipeline/HealPipeline.cs` | 施法侧 Done × 目标侧 Received 独立计算 |
+| **L1-07** | 内核机制 | 第21节 10 大扩展机制 | `GameCore/Battle/Extensions/` | 护盾吸收、直接伤害12%斩杀、5s控制递减 |
+| **L1-08** | 内核权能 | 四阶拦截器排序调度器 | `GameCore/Battle/Interceptors/` | Level降序→UnitId升序，首个true短路 |
+| **L1-09** | 内核策略 | Gambit 数据驱动求值器 | `GameCore/Battle/Tactics/TacticsEvaluator.cs` | 16 条基础指令库匹配、动态RageCap(100↔150) |
+| **L1-10** | 内核事件 | 零堆分配双缓冲事件队列 | `GameCore/Battle/Events/BattleEventQueue.cs` | readonly record struct 栈分发，0 GC 分配 |
+| **L2-01** | 单局肉鸽 | 三轨地图拓扑生成器 | `GameCore/Rogue/Map/RogueMapGenerator.cs` | 单局1世界3层18步，25%裂隙，种子可复现 |
+| **L2-02** | 单局构筑 | D-25 插槽服务与背包 | `GameCore/Rogue/Inventory/SocketManager.cs` | 核心槽恒为2/总槽3~6，背包15格，精炼逻辑 |
+| **L2-03** | 单局构筑 | 羁绊换算引擎 | `GameCore/Rogue/Synergy/SynergyEvaluator.cs` | 6 职业(2/4/6) + 双血脉(2/4) Modifier生成 |
+| **L2-04** | 单局构筑 | 12 款跨界超武融合机 | `GameCore/Rogue/Synergy/FusionEngine.cs` | 满阶配对检测、超武生成、退还1核心槽 |
+| **L2-05** | 单局战损 | D-09 重伤战损流转状态机 | `GameCore/Rogue/State/InjuryService.cs` | 血量跨节点继承，阵亡转重伤，阶梯救治费 |
+| **L2-06** | 单局事件 | 确定性静态异象事件流 | `GameCore/Rogue/EventData/EventManager.cs` | 静态 JSON 解析，根据种子派发选项与奖励 |
+| **L2-07** | 局外元养成 | 轮回点数与传家宝封印 | `GameCore/Meta/State/MetaPersistence.cs` | 轮回结算、传承封印、征召许可逻辑 |
+| **L3-01** | 表现布阵 | 2×5 自由站位棋盘场景 | `GodotApp/Scenes/Battlefield2x5.tscn` | 10 格自由放置，后排 0.85 缩放与 Z-Index |
+| **L3-02** | 表现事件 | 战局事件消费与飘字池 | `GodotApp/Controllers/BattleViewController.cs` | 读取 RingBuffer 驱动 Tween 飘字与闪白 |
+| **L3-03** | 表现插值 | 定频累加器与运动插值 | `GodotApp/Controllers/FrameAccumulator.cs` | 消除变频显示器微抖动，保证丝滑观感 |
+| **L3-04** | 表现战术 | Gambit 战前配置面板 | `GodotApp/UI/GambitSetupView.tscn` | 2 槽战术下拉选择器与规则可视化提示 |
+| **L3-05** | 表现构筑 | 插槽镶嵌与超武动效 UI | `GodotApp/UI/SocketInventoryView.tscn` | 拖拽词条卡扣、羁绊点亮徽章、超武合成粒子 |
+| **L3-06** | 表现地图 | 三轨地图视差连线视图 | `GodotApp/Scenes/RogueMapView.tscn` | 渲染 18 步节点、分支选择高亮、路径推进 |
+| **L3-07** | 表现控制 | 多倍速与系统顶栏控制器 | `GodotApp/UI/TopBarController.cs` | 1x/2x/4x 步频切换、种子复制与暂停放弃 |
+| **T-01** | 工具链 | JSON Schema 规则集 | `tools/GameCore.Validator/Schemas/` | 5 份标准 schema 文件及字段断言 |
+| **T-02** | 工具链 | 数据完整性扫描 CLI | `tools/GameCore.Validator/Program.cs` | 外键引用、枚举拼写、数值越界自动化扫描 |
+| **TEST-01**| 测试回归 | 伤害与治疗管线数学单测 | `tests/GameCore.Tests/PipelineMathTests.cs` | 100% 覆盖护甲、软钳制、混合DOT断言 |
+| **TEST-02**| 测试回归 | 10,000 场蒙特卡洛压测 | `tests/GameCore.Tests/MonteCarloTests.cs` | 验证附录 C-3 人均技能释放 &ge; 2 次/场 |
+| **TEST-03**| 测试回归 | 跨平台逐帧状态哈希回归 | `tests/GameCore.Tests/DeterminismTests.cs` | 校验多倍速下事件哈希逐帧完全一致 |
+| **TEST-04**| 测试回归 | 配置表完整性自动化门禁 | `tests/GameCore.Tests/DataIntegrityTests.cs` | 编译期执行静态数据扫描，阻断脏数据 |
 
 ---
 
-### 2.4 自动化单测与蒙特卡洛验证 (GameCore.Tests)
-
-| 编号 | 模块 | 测试套件 / 类名 | 验收指标与测试目标 | 对应风险项 |
-|:---:|---|---|---|:---:|
-| **T-01** | 管线数学 | `BattleCoreTests/DamagePipelineTests.cs` | 验证护甲线性公式、连续穿透率 Pen、元素 1.67 摆幅及分段软钳制计算精度（误差 &lt; 0.0001）。 | B-6, D-13 |
-| **T-02** | 控制递减 | `BattleCoreTests/CrowdControlTests.cs` | 验证 5s 窗口内第 1/2/3/4 次眩晕时长严格为 100%/50%/25%/0% 免疫。 | B-9, BATTLE_CORE 14.5 |
-| **T-03** | 扩展机制 | `BattleCoreTests/ExtensionMechanicsTests.cs` | 验证护盾吸收、直接伤害 &lt; 12% 斩杀、吸血防死循环标记及按枚举序驱散。 | D-27, BATTLE_CORE 21 |
-| **T-04** | 无头蒙特卡洛 | `MonteCarloSimulator/BattleBalanceSimulator.cs` | 运行 10,000 场无头对战：**统计人均战技+大招释放次数 &ge; 2 次/场**；常规战时长 20~40s。 | B-7, 附录 C-3, C-4 |
-| **T-05** | 速度边际 | `MonteCarloSimulator/SpeedSensitivityTests.cs` | 模拟速度属性从 100 增至 300 的边际 TTK 贡献，确认其未产生指数级统治地位。 | B-12, 附录 C-5 |
-| **T-06** | 确定性重放 | `DeterminismReplayTests/SeedReplayTests.cs` | 验证相同 Seed 在 1x / 2x / 4x 倍速下产出事件哈希 100% 完全一致。 | 附录 C-1, C-2 |
-
----
-
-## 三、工程排期计划与阶段门禁 (5-Week Roadmap & Quality Gates)
+## 三、第二部分：工程排期计划 (5 周 Sprint 与门禁)
 
 ```
-Week 1 (Sprint 1) ──▶ Week 2 (Sprint 2) ──▶ Week 3 (Sprint 3) ──▶ Week 4 (Sprint 4) ──▶ Week 5 (Sprint 5)
-[纯 C# 战斗内核]       [肉鸽状态与插槽]       [Godot 表现与MVP]      [双世界数据实装]       [视听资产与发布]
-      │                     │                     │                     │                     │
-   门禁 G1               门禁 G2               门禁 G3               门禁 G4               门禁 G5
-(单测 & 1万次无头)     (单局三轨全跑通)       (首个可玩原型)       (10万次平衡验证)       (发布候选版本)
+[Sprint 1: 内核防线与数学闭环] ──── 门禁 G1 (万场无头测试 & Zero-GC 验证)
+               │
+[Sprint 2: 肉鸽拓扑与构筑超武] ──── 门禁 G2 (单局 18 步全流转与重伤经济验证)
+               │
+[Sprint 3: Godot 表现层与 MVP] ──── 门禁 G3 (首场图形自走棋自由布阵实机闭环)
+               │
+[Sprint 4: 双世界实装与平衡调校] ── 门禁 G4 (10 万场对局蒙特卡洛平衡收敛)
+               │
+[Sprint 5: 美术音效与封包发布] ──── 门禁 G5 (双端 60FPS 秒开独立 Demo)
 ```
 
-### 3.1 Sprint 1 (Week 1)：纯 C# 战斗内核闭环 (门禁 G1)
-- **目标**：彻底落地纯 .NET 8 战斗内核，实现数据模型、主循环、伤害管线、扩展机制与战术求值器。
-- **关键路径**：B-01 &rarr; B-03 &rarr; B-06 &rarr; B-08 &rarr; B-09 &rarr; B-11 &rarr; T-01 ~ T-04。
-- **阶段门禁 G1**：
-  1. `GameCore.Tests` 数学单测通过率 100%；
-  2. 10,000 场无头战斗蒙特卡洛模拟顺利结算，无死锁、无异常退出；
-  3. 人均战技+大招释放次数 &ge; 2.0 次/场（消除 B-7 风险）。
+### 3.1 各冲刺周期目标与严格门禁准则
 
-### 3.2 Sprint 2 (Week 2)：肉鸽状态机、插槽与超武 (门禁 G2)
-- **目标**：落地单局肉鸽流转服务，实现 D-25 核心槽恒为 2 拓扑、羁绊引擎、超武融合与 D-09 重伤经济。
-- **关键路径**：R-01 &rarr; R-02 &rarr; R-03 &rarr; R-04 &rarr; R-05 &rarr; R-06 &rarr; R-08。
-- **阶段门禁 G2**：
-  1. 无头模式完整跑通单局 1 世界 3 层 18 步流转；
-  2. 验证职业(6)+血脉(4) 恰好用满 10 个核心槽且正确触发 Modifier；
-  3. 阵亡素体进入【重伤】、词条自由卸下、安全屋信用点救治费用递增逻辑 100% 正确。
+#### Sprint 1 (第 1 周)：纯 C# 确定性无头内核 (L1)
+- **重点目标**：完成 L1-01 至 L1-10，建立 Zero-GC 事件环形队列与定点数数学工具。
+- **质量门禁 G1**：
+  1. `dotnet test` 数学断言 100% 通过；
+  2. 10,000 场无头蒙特卡洛模拟运行耗时 &le; 3 秒（8核并行）；
+  3. 内存检测工具验证：单场战斗运行期间 **0 GC Gen 0/1/2 堆内存分配**；
+  4. 人均技能释放（战技+大招）&ge; 2.0 次/场。
 
-### 3.3 Sprint 3 (Week 3)：Godot 4.x 表现层与 MVP 闭环 (门禁 G3)
-- **目标**：在 Godot 4.x 中接入 `GameCore.dll`，实现 2×5 布阵、事件消费平滑动画、战术配置面板与大地图。
-- **关键路径**：G-01 &rarr; G-02 &rarr; G-03 &rarr; G-04 &rarr; G-06 &rarr; G-07。
-- **阶段门禁 G3**：
-  1. 玩家可在 Godot 界面中拖拽 5 名素体自由放置在 2×5 棋盘（后排 0.85 缩放与遮挡正确）；
-  2. 完整观战一场自动对局，平滑血条扣减、伤害跳字、打击闪白与胜利结算流畅呈现；
-  3. 1x / 2x / 4x 倍速切换无卡顿且战斗结果与内核完全一致。
+#### Sprint 2 (第 2 周)：单局肉鸽状态机、插槽与超武 (L2)
+- **重点目标**：完成 L2-01 至 L2-07，闭环 D-25 插槽拓扑与 D-09 战损流转状态机。
+- **质量门禁 G2**：
+  1. 无头自动跑通单局 1 世界 3 层 18 步全流程，不发生死循环或未捕获异常；
+  2. 验证核心槽恒为 2，职业(6)+血脉(4) 恰好用满 10 个核心槽；
+  3. 12 款超武配方检测合成率达标，合成后稳定腾退插槽。
 
-### 3.4 Sprint 4 (Week 4)：双世界内容实装与数值平配 (门禁 G4)
-- **目标**：全量录入蜀山仙界与赛博蜂巢的 24 款素体、62 枚词条、12 款超武与 30 篇异象事件配置表。
-- **关键路径**：配置表编写 &rarr; 波次组装 &rarr; 异象配置 &rarr; 100,000 场无头蒙特卡洛数值微调。
-- **阶段门禁 G4**：
-  1. 62 枚词条与 12 款超武的全部机制与数值在游戏中生效无阻；
-  2. 100,000 场对局统计下，六大职业流派胜率收敛在 35% ~ 65% 区间，无废弃流派；
-  3. 30 篇异象事件全部可触发，无数值破坏性 Bug。
+#### Sprint 3 (第 3 周)：Godot 4.x 表现层打通与 MVP 原型 (L3)
+- **重点目标**：完成 L3-01 至 L3-07，建立 2×5 自由棋盘与定频累加器插值。
+- **质量门禁 G3**：
+  1. 在 Godot 客户端完成首场可视化自走棋实机对战；
+  2. 后排角色自动以 0.85 缩放对齐，无严重视觉穿模与遮挡错乱；
+  3. 1x / 2x / 4x 倍速切换平滑，飞剑与伤害飘字无锯齿微抖动。
 
-### 3.5 Sprint 5 (Week 5)：美术音效注入、存档与封包发布 (门禁 G5)
-- **目标**：注入 24 款素体切片立绘、战场视差背景、全套打击与系统音效，实现本地存档并封包。
-- **关键路径**：美术切片配置 &rarr; 音频接入 &rarr; 本地确定性存档 &rarr; 多平台导出 (Windows x64 / Android)。
-- **阶段门禁 G5**：
-  1. 导出独立运行包，在断网脱机状态下秒级秒开，对局全程稳定 60 FPS；
-  2. 种子复制与黏贴对局可重现完全一致的随机地图与战斗结果；
-  3. 产出首个对外公开试玩版 Demo 包体。
+#### Sprint 4 (第 4 周)：双世界内容实装与数值平配
+- **重点目标**：录入 24 款素体、62 枚词条、12 款超武与 30 篇异象 JSON。
+- **质量门禁 G4**：
+  1. 离线校验 CLI 扫描数据 0 警告 0 报错；
+  2. 运行 100,000 场无头蒙特卡洛模拟，6 大职业构筑胜率严格收敛在 `[35%, 65%]`；
+  3. 超时平局率 &le; 0.8%。
+
+#### Sprint 5 (第 5 周)：美术音效注入、系统打磨与封包
+- **重点目标**：注入全套 24 款素体立绘、Shader 特效、背景与打击音效；导出跨平台包体。
+- **终局发布门禁 G5**：
+  1. PC (Windows x64) 与 Mobile (Android) 脱机离线秒开启动；
+  2. 复杂战局（满屏超武飞弹）实测帧率稳定 &ge; 60 FPS；
+  3. 种子复制重放哈希一致率 100%。
 
 ---
 
-## 四、数字资产完整清单 (Digital Asset Ledger & Schemas)
+## 四、第三部分：全量数字资产明细与量产 SOP
 
-### 4.1 角色素体资产 (首发 24 款)
-
-- **美术交付规格**：
-  - 全身立绘：`512 × 768` 像素，WebP/PNG，透明通道背景；
-  - 战场战斗卡面：`256 × 384` 像素，带职业边框与先天权能星级标识；
-  - 头像图标：`128 × 128` 像素；
-  - 必要状态切片：待机 (Idle)、普攻 (Attack)、受击闪红 (Hit)、大招释出 (Cast)、重伤倒地 (Down)。
-
-#### 1. 蜀山断裂仙界 (12 款素体)
-| 素体代码 | 素体中文名 | 标准职业 | 先天权能 | 本命大招 (InnateUltimate) | 初始保底词条 |
-|---|---|:---:|:---:|---|---|
-| `vessel_ss_guard_01` | **苍岩剑壁** | 守卫 Guardian | Level 1 | 【不动如山】全队获得 20% 最大生命护盾，持续 4 秒 | `affix_iron_guardian_lv1` |
-| `vessel_ss_guard_02` | **玄龟剑傀** | 守卫 Guardian | Level 2 | 【玄冥剑罡】对自身周围造成伤害，嘲讽命中者 3 秒 | `affix_heavy_bastion_lv1` |
-| `vessel_ss_striker_01` | **裂风剑客** | 强袭 Striker | Level 1 | 【疾风骤雨】对目标造成 3 次 120% 物理穿透攻击 | `affix_slash_blade_lv1` |
-| `vessel_ss_striker_02` | **破军剑圣** | 强袭 Striker | Level 3 | 【天地同寿】消耗自身 15% 当前生命，造成全场 240% 绝强穿透伤害 | `affix_slash_blade_lv2` |
-| `vessel_ss_mystic_01` | **紫霄引雷真君** | 秘术 Mystic | Level 2 | 【紫霄九天雷】引雷轰击敌方最高攻击者，造成 260% 元素伤害并眩晕 1.5s | `affix_element_gather_lv1` |
-| `vessel_ss_mystic_02` | **焚天道人** | 秘术 Mystic | Level 3 | 【真火焚野】对敌方全排附加 10 秒真火灼烧（每跳 5% 最大生命） | `affix_element_gather_lv2` |
-| `vessel_ss_ranger_01` | **穿云飞剑客** | 游猎 Ranger | Level 1 | 【穿云一击】射出一柄飞剑贯穿同列敌方，造成 180% 穿透物理伤害 | `affix_rend_barb_lv1` |
-| `vessel_ss_ranger_02` | **千机散人** | 游猎 Ranger | Level 2 | 【漫天花雨】向敌方后排随机倾泻 6 柄飞剑，每柄造成 60% 伤害 | `affix_rend_barb_lv1` |
-| `vessel_ss_shadow_01` | **无相剑影** | 暗影 Shadow | Level 2 | 【影杀术】突刺至最弱敌人背后，造成 220% 伤害，若斩杀则回满怒气 | `affix_shadow_stab_lv1` |
-| `vessel_ss_shadow_02` | **绝情弃剑者** | 暗影 Shadow | Level 4 | 【概念级·断因果】使目标进入 3 秒孤立状态，受直接伤害提升 50% | `affix_shadow_stab_lv2` |
-| `vessel_ss_support_01` | **灵台拂尘仙姑** | 支援 Support | Level 1 | 【甘霖普降】治疗全体友军 120% 攻击力生命值，驱散 1 个控制减益 | `affix_life_aid_lv1` |
-| `vessel_ss_support_02` | **太清度厄真人** | 支援 Support | Level 3 | 【太极玄黄界】展开法阵，全队受直接伤害降低 30%，持续 5 秒 | `affix_life_aid_lv2` |
-
-#### 2. 赛博霓虹蜂巢 (12 款素体)
-| 素体代码 | 素体中文名 | 标准职业 | 先天权能 | 本命大招 (InnateUltimate) | 初始保底词条 |
-|---|---|:---:|:---:|---|---|
-| `vessel_cb_guard_01` | **钛金防暴机兵** | 守卫 Guardian | Level 1 | 【防暴矩阵】架起合金巨盾，自身减伤 50% 并反射 20% 伤害，持续 4 秒 | `affix_iron_guardian_lv1` |
-| `vessel_cb_guard_02` | **力场重装守卫** | 守卫 Guardian | Level 2 | 【动能偏转屏障】为前排生成吸收 400 点伤害的电磁偏转力场 | `affix_heavy_bastion_lv1` |
-| `vessel_cb_striker_01` | **纳米武士·斩牙** | 强袭 Striker | Level 2 | 【纳米分子裂解斩】直劈敌方前排，附带 10 秒分子流血（每跳 4% 最大生命） | `affix_slash_blade_lv1` |
-| `vessel_cb_striker_02` | **过载狂暴机甲** | 强袭 Striker | Level 3 | 【反应堆过载】攻速暴增 100%，每次普攻附带 30% 真实伤害，持续 5 秒 | `affix_slash_blade_lv2` |
-| `vessel_cb_mystic_01` | **神经电弧过载者** | 秘术 Mystic | Level 1 | 【超导电弧链】释放连环电弧弹跳 4 次，每段造成 110% 元素伤害 | `affix_element_gather_lv1` |
-| `vessel_cb_mystic_02` | **量子黑客·虚空** | 秘术 Mystic | Level 4 | 【逻辑死锁崩溃】入侵敌方全体神经芯片，沉默全场 2.5 秒并清空 30 点法力 | `affix_element_gather_lv2` |
-| `vessel_cb_ranger_01` | **磁轨重炮猎手** | 游猎 Ranger | Level 2 | 【超重型电磁炮】蓄力发射磁轨炮，对目标造成 280% 贯通伤害（忽视 50% 护甲） | `affix_rend_barb_lv1` |
-| `vessel_cb_ranger_02` | **微型巡飞弹巢** | 游猎 Ranger | Level 3 | 【饱和蜂群轰炸】发射 8 枚微型巡飞弹随机轰击敌方全阵地 | `affix_rend_barb_lv2` |
-| `vessel_cb_shadow_01` | **光学隐形人** | 暗影 Shadow | Level 3 | 【光学拟态伏杀】进入 2 秒隐匿状态，下一次攻击必定造成 250% 破甲伤害 | `affix_shadow_stab_lv1` |
-| `vessel_cb_shadow_02` | **数据死神** | 暗影 Shadow | Level 4 | 【防火墙穿透背刺】瞬移至敌方后排施法者身后，造成 300% 物理暴击直接伤害 | `affix_shadow_stab_lv2` |
-| `vessel_cb_support_01` | **战地急救无人机** | 支援 Support | Level 1 | 【纳米修复喷雾】为生命最低友军注射纳米针，3 秒内恢复 30% 最大生命 | `affix_life_aid_lv1` |
-| `vessel_cb_support_02` | **神经共鸣枢纽** | 支援 Support | Level 2 | 【超频神经同步】立即为全体友军注入 25 点法力与 15 点怒气 | `affix_life_aid_lv1` |
-
----
-
-### 4.2 词条卡牌、徽章与图标资产 (62 枚)
-
-- **美术交付规格**：
-  - 图标：`128 × 128` 像素 PNG，透明通道；
-  - 边框装饰：Lv1 铸铁/青铜色；Lv2 银白合金/玄银色；Lv3 炫金/流光金色；超武专属概念级紫金炫彩呼吸光。
-
-#### 1. 六大职业核心词条 (32 枚，涵盖 Lv1~Lv3 进阶与回归机制)
-| 词条 ID | 中文名 | 归属职业 | 核心机制描述 (Lv1 / Lv2 / Lv3) | 挂钩点 |
-|---|---|:---:|---|---|
-| `affix_iron_guardian` | 铁甲守卫 | 守卫 | 受直接物理伤害减免 10% / 18% / 25% | `OnDamageTaken` |
-| `affix_heavy_bastion` | 重装壁垒 | 守卫 | 战斗开局获得 15% / 25% / 35% 最大生命护盾 | `OnBattleStart` |
-| `affix_thorn_carapace` | 荆棘反甲 | 守卫 | 反弹所受直接伤害的 15% / 25% / 35% 给攻击者 | `IsReflected` |
-| `affix_slash_blade` | 斩裂重刃 | 强袭 | 普攻有 20% 概率造成 140% / 180% / 220% 破甲伤害 | `OnHit` |
-| `affix_blood_craze` | 嗜血狂袭 | 强袭 | 造成物理伤害的 12% / 20% / 30% 转化为自身生命 | `OnDamageDealt` |
-| `affix_berserk_surge` | **狂化涌流** | 强袭 | **残血增伤回归**：伤害根据已损生命提升 `K = 0.30 / 0.45 / 0.60` | `GetAtkMultiplier` |
-| `affix_element_gather` | 元素聚能 | 秘术 | 战技造成的法术伤害提升 15% / 25% / 35% | `OnSkillCast` |
-| `affix_arcane_echo` | 秘术余波 | 秘术 | 施放战技后，下次普攻附带 40% / 70% / 100% 溅射法伤 | `OnAfterAction` |
-| `affix_rend_barb` | **裂伤箭镞** | 游猎 | **经典流血回归**：普攻有 15% / 20% / 25% 附加流血状态 | `OnHit` |
-| `affix_swift_cascade` | **疾风连动** | 游猎 | **经典再动回归**：行动后有 15% / 22% / 30% 立即再次行动（不回能） | `RollExtraAction` |
-| `affix_eagle_eye` | 鹰眼急所 | 游猎 | 攻击距离加深，对后排目标造成伤害提高 15% / 25% / 35% | `GetDamageMultiplier` |
-| `affix_shadow_stab` | 孤立背刺 | 暗影 | 对战场最边缘的敌方单体造成伤害提升 20% / 35% / 50% | `GetDamageMultiplier` |
-| `affix_ghost_blade` | 幽影斩杀 | 暗影 | 直接伤害命中生命值低于 12% 的目标时直接处决 | `GetExecuteThreshold` |
-| `affix_life_aid` | 生命急救 | 支援 | 自身治疗效果提升 15% / 25% / 35% | `HealingDone` |
-| `affix_mana_fountain`| 灵能涌泉 | 支援 | 每秒自然回复 2 / 4 / 6 点法力 (`ManaRegenPerSec`) | `ManaRegen` |
-
-#### 2. 双世界血脉词条 (18 枚)
-| 词条 ID | 中文名 | 归属世界 | 核心机制描述 (Lv1 / Lv2 / Lv3) |
-|---|---|:---:|---|
-| `affix_blood_ss_sword` | 万剑诀残卷 | 蜀山仙界 | 每次普攻凝聚 1 柄悬空剑气，攒满 3 柄时自动呼啸发射贯穿敌阵 |
-| `affix_blood_ss_talisman`| 太清护身符 | 蜀山仙界 | 受到致死伤害时免死并无敌 1.5 秒（全场仅 1 次，战后正常结算重伤） |
-| `affix_blood_ss_heart` | 养剑蕴心法 | 蜀山仙界 | 自身每持有 10 点怒气，全属性伤害提升 2% / 3.5% / 5% |
-| `affix_blood_cb_implant`| 超维神经义体 | 赛博蜂巢 | 攻击充能速度提升 15% / 25% / 35%，受电磁干扰免疫 |
-| `affix_blood_cb_overload`| 动力微型聚变堆 | 赛博蜂巢 | 生命低于 40% 时进入过载，攻速与攻击力暴增 40%，受伤害加深 15% |
-| `affix_blood_cb_shield` | 纳米偏转力场 | 赛博蜂巢 | 每隔 8 秒自动刷新一个吸收 15% 最大生命的偏转力场护盾 |
-
-#### 3. 概念级跨界超武 (12 款，需由满阶跨界词条合成)
-| 超武 ID | 概念超武名称 | 合成素材配方 | 质变机制与概念级效果 |
-|---|---|---|---|
-| `weapon_super_01` | **高频纳米飞剑** | 斩裂重刃 (强袭) + 万剑诀残卷 (蜀山) | 普攻变为 3 柄纳米剑气全屏飞射，每段攻击削减受击者 10% 护甲（上限 60%）。 |
-| `weapon_super_02` | **赛博金丹热能炉** | 狂化涌流 (强袭) + 动力微型聚变堆 (赛博) | 受到伤害按 30% 转化为怒气与热能，满热能时普攻产生全屏真实伤害爆炸。 |
-| `weapon_super_03` | **因果律反器材狙击** | 鹰眼急所 (游猎) + 超维神经义体 (赛博) | 普攻直接跨过前排锁定敌方最大攻击力单位，造成 250% 绝对穿甲物理伤害。 |
-| `weapon_super_04` | **等离子诛仙剑阵** | 元素聚能 (秘术) + 万剑诀残卷 (蜀山) | 战场中央降下等离子剑阵，敌方每秒受到 6% 混合伤害，持续 12 秒。 |
-| `weapon_super_05` | **义体渡劫金身** | 重装壁垒 (守卫) + 太清护身符 (蜀山) | 致命伤害时清除负面并回复 30% 生命存活本场；战后转重伤但不计入救治涨价累计。 |
-| `weapon_super_06` | **量子黑客夺舍针** | 幽影斩杀 (暗影) + 超维神经义体 (赛博) | 命中敌方时使其沉默 3 秒，且此期间其受到的所有伤害 50% 同步反弹给其队友。 |
-| `weapon_super_07` | **万象剑傀蜂群** | 疾风连动 (游猎) + 动力微型聚变堆 (赛博) | 普攻裂解为三段机械飞刃连击，每段均可独立触发攻击特效与索敌。 |
-| `weapon_super_08` | **无间相位折跃刃** | 孤立背刺 (暗影) + 纳米偏转力场 (赛博) | 受攻击时有 50% 概率折跃遁入虚空（完全规避伤害并眩晕攻击者 1 秒）。 |
-| `weapon_super_09` | **太清微波护道钟** | 铁甲守卫 (守卫) + 太清护身符 (蜀山) | 为全队展开太清护道钟，受到的一切控制效果持续时间削减 60%。 |
-| `weapon_super_10` | **真火引力坍缩弹** | 秘术余波 (秘术) + 动力微型聚变堆 (赛博) | 战技施放后生成引力黑洞，将敌方后排拉扯至中排并造成 200% 灼烧法伤。 |
-| `weapon_super_11` | **灵能纳米医疗枢纽** | 生命急救 (支援) + 纳米偏转力场 (赛博) | 队伍任意成员濒死时立即为其注入 40% 生命超频护盾（全队共享冷却 10 秒）。 |
-| `weapon_super_12` | **绝对反射矩阵** | 荆棘反甲 (守卫) + 纳米偏转力场 (赛博) | 受到敌方后排的一切攻击伤害削减 50%，并将吸收伤害的 25% 以能量束反弹。 |
-
----
-
-### 4.3 场景背景与视觉特效资产 (VFX & Shader)
-
-- **场景大图规格**：`1920 × 1080` 像素，分双层贴图（近景地面层 + 远景视差漂浮层），PNG/WebP。
-  1. `env_shushan_battlefield`：蜀山倒悬剑冢峰（远景漂浮孤峰、云海、古老插剑残壁）；
-  2. `env_cyber_battlefield`：赛博深渊雨夜霓虹街区（地面雨水积水倒影、霓虹广告牌、全息投影）；
-  3. `env_void_rift`：虚空跨界裂隙竞技场（空间破裂断层、量子粒子光晕）。
-- **着色器 (Godot CanvasItemShader)**：
-  1. `CRTScanline.gdshader`：模拟老旧赛博监视器、行扫描线、轻微色散与暗角；
-  2. `HitFlash.gdshader`：受击 0.05 秒纯白闪烁材质，配合顿帧提供拳拳到肉的打击感；
-  3. `InkFlow.gdshader`：仙侠水墨挥毫扩散拖尾 Shader。
-- **粒子系统 (GPUParticles2D)**：
-  1. `vfx_sword_trail`：青色与金色剑气拖尾；
-  2. `vfx_laser_beam`：高能蓝色电磁激光束；
-  3. `vfx_shield_bubble`：半透明六边形蜂窝力场球；
-  4. `vfx_slash_burst`：物理斩击红色爆裂粒子；
-  5. `vfx_execute_skull`：暗影 12% 斩杀瞬发紫黑死神徽标；
-  6. `vfx_level_up`：超武合成冲天光柱。
-
----
-
-### 4.4 音频与音效资产 (Audio & Sound FX)
-
-- **音频标准**：44.1kHz / 16bit，BGM 为 OGG 格式（统一 -14 LUFS，完美 Seamless Loop）；音效为无损 WAV 格式（统一 -18 LUFS）。
-- **背景音乐 (BGM)**：
-  1. `bgm_shushan_explore`：《断剑悲鸣》仙侠空灵古筝与低沉大提琴混合氛围音乐；
-  2. `bgm_cyber_explore`：《霓虹过载》80s 复古合成器波（Synthwave）配重低音节拍；
-  3. `bgm_boss_battle`：《天道仲裁》激昂交响打击乐与失真电吉他融合战歌。
-- **战斗音效 (SFX)**：
-  - `sfx_sword_swing_01~03`：轻重飞剑划空破风声；
-  - `sfx_laser_fire_01~02`：电磁充能射击声；
-  - `sfx_shield_impact`：重盾承受撞击金属沉闷声；
-  - `sfx_shield_break`：力场护盾爆碎玻璃脆响；
-  - `sfx_execute_hit`：断头台般的沉重处决重击音；
-  - `sfx_ultimate_ready`：怒气攒满时的清脆战术高频提示音。
-- **UI 与系统反馈音**：
-  - `sfx_ui_click`：轻脆微动开关点击声；
-  - `sfx_ui_equip`：插槽金属卡扣咔哒锁死声；
-  - `sfx_ui_fuse`：超武融合能量激荡轰鸣音；
-  - `sfx_ui_injury_alarm`：素体阵亡进入重伤的警报短鸣；
-  - `sfx_ui_victory`：战斗胜利三颗星结算音。
-
----
-
-### 4.5 结构化配置数据表清单 (Data Schemas)
-
-所有数据配置表存放于 `GodotApp/Data/` 目录，采用纯 JSON 格式存储，与纯 C# 内核反序列化契约完全一致：
+### 4.1 角色素体资产表 (首发 24 款：蜀山 12 + 赛博 12)
 
 ```
-GodotApp/Data/
-├── vessels.json         [24 款角色素体基础数值、先天权能、怒气本命大招定义]
-├── affixes.json         [62 枚核心/作战/通用词条详细参数、tags 与 affinity 标签]
-├── fusion_recipes.json  [12 款跨界超武合成素材配方与概念质变挂钩点]
-├── tactics.json         [首发 16 条战术指令四元组枚举映射表]
-├── events.json          [30 篇离线确定性位面异象剧情与决策分支表]
-└── encounters.json      [双世界 45 组怪物波次、等级与阵型数据]
+[蜀山仙界 12 素体]                 [赛博蜂巢 12 素体]
+├── 守卫: 苍岩剑壁 (L1)            ├── 守卫: 钛金防暴机兵 (L1)
+├── 守卫: 镇岳道尊 (L4)            ├── 守卫: 磁暴力场机神 (L4)
+├── 强袭: 裂风剑客 (L2)            ├── 强袭: 纳米武士·斩牙 (L2)
+├── 强袭: 惊鸿剑狂 (L3)            ├── 强袭: 热能链锯屠夫 (L3)
+├── 秘术: 紫霄真君 (L3)            ├── 秘术: 神经电弧过载者 (L3)
+├── 秘术: 丹青画仙 (L1)            ├── 秘术: 量子网络黑客 (L1)
+├── 游猎: 穿云剑侠 (L2)            ├── 游猎: 磁轨重炮赏金手 (L2)
+├── 游猎: 逐日神弩 (L3)            ├── 游猎: 光子无人机哨兵 (L3)
+├── 暗影: 无相剑影 (L3)            ├── 暗影: 光学隐形特工 (L4)
+├── 暗影: 谪仙绝影 (L4)            ├── 暗影: 单分子线切裂者 (L2)
+├── 支援: 灵台仙姑 (L4)            ├── 支援: 生化急救无人机 (L1)
+└── 支援: 妙手丹童 (L1)            └── 支援: 战术中继纳米站 (L3)
 ```
+
+- **美术规格**：512×768 WebP 格式（RGBA 8-bit），背景全透明。
+- **必要切片与状态**：
+  1. 卡面半身像（256×384 战前与上阵槽）
+  2. 待机轻微呼吸浮动（Idle）
+  3. 技能释放瞬态高亮（Cast）
+  4. 受击红晕闪烁（Hit）
+  5. 阵亡灰度重伤态（Down）
+
+### 4.2 图标、徽章与场景资产明细账
+- **徽章与流派图标 (8 枚)**：
+  - 守卫/强袭/秘术/游猎/暗影/支援（6 大职业，128×128 矢量发光）
+  - 蜀山断裂仙界纹章、赛博霓虹蜂巢芯片纹章（2 大血脉，128×128 矢量发光）
+- **词条卡牌图标 (50 枚)**：
+  - 32 枚基础职业词条（96×96 方形图标，支持 1/2/3 阶铜银金镶边）
+  - 18 枚双世界血脉词条（96×96 方形图标）
+- **概念级跨界超武 (12 款)**：
+  - 12 款带流光彩色边框的超武大图标（128×128）
+  - 12 款半透明剪影问号态图标（未解锁状态）
+- **战场背景图 (3 幅大画)**：
+  - `bg_shushan_summit.webp`：1920×1080 倒悬峰与青白剑冢（双层视差）
+  - `bg_cyber_neon_slum.webp`：1920×1080 雨夜积水霓虹与摩天巨屏（双层视差）
+  - `bg_void_rift_arena.webp`：1920×1080 虚空破碎悬石与数据乱流
+- **着色器 (3 套 Shader)**：
+  - `cyber_scanline_chromatic.gdshader`（赛博屏幕扫描线与色散）
+  - `shushan_ink_stroke.gdshader`（水墨拖尾与剑气轮廓流光）
+  - `combat_flash_hit.gdshader`（全屏受击闪白与极低开销顿红）
 
 ---
 
-## 五、总结与交接说明
+### 4.3 AI 辅助数字资产工业化量产 SOP
 
-本规划书是 **GameAndLLM** 项目进入编码实施阶段的**最终最高指导纲领**：
-1. **架构坚固**：彻底阻断“游戏运行时调用 LLM”与“逻辑强行绑死游戏引擎”两大致命设计隐患；
-2. **职责分明**：纯 C# 无头内核专注 100% 确定性、数学防爆与极限速度验证；Godot 4.x 专注 2×5 棋盘交互、视差渲染与绚丽打击反馈；
-3. **资产清晰**：从 24 款素体到 62 枚词条、12 款超武，所有数据字段、挂钩点与艺术标准均有据可查、零悬空。
+为了彻底规避独立开发团队在美术与音频上的“产能断崖”，制定标准化工业级生成管线：
 
-项目随时可以按 **Sprint 1 (Week 1)** 正式启动第一行 C# 代码的编写！
+#### 阶段 A：角色立绘量产流程 (ComfyUI / Midjourney)
+1. **基座模型与 LoRA 固化**：
+   - 蜀山世界：选用 SDXL + 国风修真古画/仙侠水墨特定 LoRA，权重锁定 0.75。
+   - 赛博世界：选用 SDXL + Cyberpunk Concept Art LoRA，权重锁定 0.80。
+2. **Prompt 模板规范（严格保持光影与画风统一）**：
+   - 基础 Prompt 结构：`[Subject], [Class Role], standing front-view pose, official concept art, clean background, sharp focus, masterpiece, cinematic lighting, transparent background compatible`。
+   - 统一 Seed 分段分配：蜀山系列 `Seed: 10001 ~ 10012`；赛博系列 `Seed: 20001 ~ 20012`。
+3. **自动化后处理批处理脚本 (Python)**：
+   - 编写 `tools/AssetPipeline/process_sprites.py`：
+     - 利用 `rembg` 库自动抠除纯色背景；
+     - 自动裁剪居中并强制缩放至标准 512×768；
+     - 导出为高质量 WebP（Quality 90），单张体积压缩至 120KB 以内。
+
+#### 阶段 B：词条与超武图标量产流程
+1. **提示词公式**：
+   - `[Affix Name/Object], vector game icon, RPG inventory style, clean dark slate background, stylized illustration, isometric 3d icon, vibrant glow --no realistic photo, complex background`。
+2. **自动化切片加框**：
+   - 脚本自动将生成的中心物品贴合进 `border_tier_1.png` ~ `border_tier_3.png` 的 96×96 边框槽位中，一键输出 62 枚成品词条切片。
+
+#### 阶段 C：音频音效量产流程
+1. **BGM 生成**：利用 Suno 设定纯器乐（Instrumental）：
+   - 蜀山：《Ethereal Guqin, Taoist flute, ambient wind chime, tragic war drum, meditative fight》
+   - 赛博：《Aggressive Dark Synthwave, Cyberpunk combat, heavy distorted bass, fast paced BPM 130》
+   - 经由 Audacity 裁剪无缝循环点（Loop Points），导出 44.1kHz OGG。
+2. **音效批量获取与调教**：
+   - 从开源商用库（Freesound CC0 / Kenney Audio）批量拉取短促打击音；
+   - 运行批处理脚本统一定位响度为 `-14 LUFS`，斩杀/暴击提示音设置在 `-10 LUFS`，彻底消除忽大忽小的听觉灾难。
