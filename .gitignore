@@ -15,3 +15,11 @@ export_credentials.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# .NET / C# build artifacts (GameCore solution)
+bin/
+obj/
+*.user
+*.suo
+[Dd]ebug/
+[Rr]elease/
