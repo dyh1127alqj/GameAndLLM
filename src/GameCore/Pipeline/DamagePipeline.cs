@@ -105,4 +105,20 @@ public static class DamagePipeline
 
         return new DamageResult(finalPreDamage, shieldAbsorbed, target.CurrentHp, flags, vampireHeal, reflectDmg);
     }
+
+    /// <summary>
+    /// 兼容别名方法
+    /// </summary>
+    public static DamageResult ProcessDamage(
+        UnitSnapshot attacker,
+        UnitSnapshot target,
+        int skillDamagePermille,
+        DamageType damageType,
+        DamageFlags baseFlags = DamageFlags.Direct,
+        int vampirePermille = 0,
+        int reflectPermille = 0,
+        bool hasExecutePower = false)
+    {
+        return CalculateAndApply(attacker, target, skillDamagePermille, damageType, baseFlags, vampirePermille, reflectPermille, hasExecutePower);
+    }
 }

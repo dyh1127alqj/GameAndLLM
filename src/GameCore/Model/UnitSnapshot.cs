@@ -32,6 +32,11 @@ public sealed class UnitSnapshot
     public int CurrentRage { get; set; } = 0;   // 怒气 [0, RageCap]
     public int RageCap { get; set; } = 100;     // 动态怒气上限 (Gambit 留大招时可升为 150)
     public int ActionGauge { get; set; } = 0;   // 行动条进度 [0, 1000]
+    public int CurrentGauge { get => ActionGauge; set => ActionGauge = value; }
+
+    // 治疗双独立乘区 (千分比，基准 1000 = 100%)
+    public int HealingDonePermille { get; set; } = 1000;
+    public int HealingReceivedPermille { get; set; } = 1000;
 
     // 扩展机制状态 (第二十一节)
     public int ShieldHp { get; set; } = 0;      // 护盾当前吸收量
@@ -81,6 +86,8 @@ public sealed class UnitSnapshot
             RageCap = 100,
             ActionGauge = 0,
             ShieldHp = 0,
+            HealingDonePermille = this.HealingDonePermille,
+            HealingReceivedPermille = this.HealingReceivedPermille,
             IsInvincible = false,
             IsStealthed = false,
             TauntedByUnitId = null,
@@ -91,6 +98,41 @@ public sealed class UnitSnapshot
             UltimateSkill = this.UltimateSkill,
             TacticsSlot1 = this.TacticsSlot1,
             TacticsSlot2 = this.TacticsSlot2
+        };
+    }
+
+    public static UnitSnapshot Create(
+        int unitId,
+        string name,
+        Faction faction,
+        Profession profession,
+        int maxHp,
+        int baseAtk,
+        int baseArmor,
+        int baseSpeed,
+        int boardPosition = 0,
+        Rank rank = Rank.Normal,
+        int level = 1,
+        SkillDefinition? activeSkill = null,
+        SkillDefinition? ultimateSkill = null)
+    {
+        return new UnitSnapshot
+        {
+            UnitId = unitId,
+            VesselId = $"vessel_{unitId}",
+            Name = name,
+            Faction = faction,
+            Profession = profession,
+            Rank = rank,
+            Level = level,
+            BoardPosition = boardPosition,
+            MaxHp = maxHp,
+            CurrentHp = maxHp,
+            BaseAtk = baseAtk,
+            BaseArmor = baseArmor,
+            BaseSpeed = baseSpeed,
+            ActiveSkill = activeSkill,
+            UltimateSkill = ultimateSkill
         };
     }
 }

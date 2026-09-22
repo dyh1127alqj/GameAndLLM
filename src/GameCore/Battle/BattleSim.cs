@@ -15,6 +15,11 @@ public sealed class BattleSim
     public bool IsFinished { get; private set; }
     public BattleOutcome Outcome { get; private set; } = BattleOutcome.InProgress;
 
+    public int TotalDamageDealtPlayer { get; private set; }
+    public int TotalDamageDealtEnemy { get; private set; }
+    public int TotalSkillsCast { get; private set; }
+    public int TotalUltimatesCast { get; private set; }
+
     public BattleSim(BattleContext context)
     {
         Context = context;
@@ -25,6 +30,9 @@ public sealed class BattleSim
         if (IsFinished) return;
         CurrentTick++;
         
+        // 维护 1.0s 索敌锁定黏性计时
+        _lockTracker.Tick();
+
         // 推进 ATB 充能
         AdvanceGauges();
         
@@ -48,6 +56,8 @@ public sealed class BattleSim
             ExecuteTurn(u);
             u.CurrentGauge = 0;
         }
+    }
+
     private void AdvanceGauges()
     {
         foreach (var u in Context.PlayerTeam.Concat(Context.EnemyTeam))
@@ -88,9 +98,12 @@ public sealed class BattleSim
 
     private void BasicAttack(UnitSnapshot u, UnitSnapshot target)
     {
-        var res = DamagePipeline.Execute(u, target, 1000, DamageType.Physical, DamageFlags.Direct);
+        var res = DamagePipeline.CalculateAndApply(u, target, 1000, DamageType.Physical, DamageFlags.Direct);
         EventQueue.PushDamage(new DamageEvent(CurrentTick, u.UnitId, target.UnitId, res.FinalDamage, res.Flags, DamageType.Physical));
         
+        if (u.Faction == Faction.Player) TotalDamageDealtPlayer += res.FinalDamage;
+        else TotalDamageDealtEnemy += res.FinalDamage;
+
         if (target.IsDead)
         {
             EventQueue.PushUnitDied(new UnitDiedEvent(CurrentTick, target.UnitId, u.UnitId));
@@ -100,9 +113,15 @@ public sealed class BattleSim
 
     private void CastSkill(UnitSnapshot u, UnitSnapshot target, SkillDefinition skill, bool isUltimate)
     {
+        if (isUltimate) TotalUltimatesCast++;
+        else TotalSkillsCast++;
+
         EventQueue.PushSkillCast(new SkillCastEvent(CurrentTick, u.UnitId, skill.SkillId, target.UnitId, isUltimate));
-        var res = DamagePipeline.Execute(u, target, skill.DamagePermille, skill.DamageType, DamageFlags.Direct);
-        EventQueue.PushDamage(new DamageEvent(CurrentTick, u.UnitId, target.UnitId, res.FinalDamage, res.Flags, skill.DamageType));
+        var res = DamagePipeline.CalculateAndApply(u, target, skill.DamageRatioPermille, skill.Type, DamageFlags.Direct);
+        EventQueue.PushDamage(new DamageEvent(CurrentTick, u.UnitId, target.UnitId, res.FinalDamage, res.Flags, skill.Type));
+
+        if (u.Faction == Faction.Player) TotalDamageDealtPlayer += res.FinalDamage;
+        else TotalDamageDealtEnemy += res.FinalDamage;
 
         if (target.IsDead)
         {
@@ -119,17 +138,17 @@ public sealed class BattleSim
         if (enemyAllDead)
         {
             IsFinished = true;
-            Outcome = BattleOutcome.Victory;
+            Outcome = BattleOutcome.PlayerVictory;
         }
         else if (playerAllDead)
         {
             IsFinished = true;
-            Outcome = BattleOutcome.Defeat;
+            Outcome = BattleOutcome.PlayerDefeat;
         }
         else if (CurrentTick >= Context.MaxTicks)
         {
             IsFinished = true;
-            Outcome = BattleOutcome.TimeOutDefeat;
+            Outcome = BattleOutcome.TimeOutDraw;
         }
     }
 
@@ -140,13 +159,15 @@ public sealed class BattleSim
             Step();
         }
 
-        int playerAlive = Context.PlayerTeam.Count(u => !u.IsDead);
         return new BattleResult(
             Outcome,
             CurrentTick,
-            playerAlive,
-            Context.PlayerTeam.Count,
-            TotalDamageDealt: 0
+            Context.PlayerTeam.Select(u => u.Clone()).ToList(),
+            Context.EnemyTeam.Select(u => u.Clone()).ToList(),
+            TotalSkillsCast,
+            TotalUltimatesCast,
+            TotalDamageDealtPlayer,
+            TotalDamageDealtEnemy
         );
     }
 }

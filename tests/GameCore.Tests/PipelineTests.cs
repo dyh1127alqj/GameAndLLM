@@ -8,19 +8,16 @@ public class PipelineTests
 {
     private static UnitSnapshot CreateTestUnit(int id, int hp, int armor, int atk = 100)
     {
-        return new UnitSnapshot(
+        return UnitSnapshot.Create(
             unitId: id,
-            vesselId: $"vessel_{id}",
             name: $"Unit_{id}",
             faction: id <= 5 ? Faction.Player : Faction.Enemy,
-            profession: Profession.Striker,
-            rank: Rank.Normal,
-            level: 1,
+            prof: Profession.Striker,
             maxHp: hp,
-            baseAtk: atk,
-            baseArmor: armor,
-            baseSpeed: 100,
-            boardPosition: id
+            atk: atk,
+            armor: armor,
+            speed: 100,
+            pos: id
         );
     }
 

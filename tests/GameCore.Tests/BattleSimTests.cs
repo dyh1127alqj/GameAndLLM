@@ -74,7 +74,7 @@ public class BattleSimTests
         var result = sim.RunToCompletion();
 
         Assert.True(sim.IsFinished);
-        Assert.Equal(BattleOutcome.Victory, result.Outcome);
+        Assert.Equal(BattleOutcome.PlayerVictory, result.Outcome);
         Assert.True(result.DurationTicks > 0);
         Assert.True(result.DurationTicks <= 5400);
         Assert.True(result.SurvivorsCount > 0);
@@ -125,7 +125,7 @@ public class BattleSimTests
         }
 
         // 门禁 G1 断言：超时平局率必须 <= 1%
-        outcomes.TryGetValue(BattleOutcome.TimeOutDefeat, out int timeouts);
+        outcomes.TryGetValue(BattleOutcome.TimeOutDraw, out int timeouts);
         double timeoutRate = (double)timeouts / simulationCount;
         Assert.True(timeoutRate <= 0.01, $"超时率超过 1%: {timeoutRate:P2}");
 

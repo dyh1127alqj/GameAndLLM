@@ -71,6 +71,11 @@ public static class CombatMath
     }
 
     /// <summary>
+    /// 兼容别名
+    /// </summary>
+    public static int ArmorDamageRatio(int effectiveArmor, int k) => ComputeArmorDamageMultiplier(effectiveArmor, k);
+
+    /// <summary>
     /// 计算穿甲后的有效护甲
     /// effectiveArmor = max(0, armor * (1 - penRatio))
     /// </summary>
