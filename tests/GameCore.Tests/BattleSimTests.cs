@@ -37,16 +37,16 @@ public class BattleSimTests
             {
                 SkillId = "strike_skill",
                 Name = "裂空斩",
-                DamagePermille = 1800,
-                DamageType = DamageType.Physical,
+                DamageRatioPermille = 1800,
+                Type = DamageType.Physical,
                 ManaCost = 100
             },
             UltimateSkill = new SkillDefinition
             {
                 SkillId = "strike_ultimate",
                 Name = "万剑归宗",
-                DamagePermille = 3200,
-                DamageType = DamageType.Physical,
+                DamageRatioPermille = 3200,
+                Type = DamageType.Physical,
                 RageCost = 100,
                 IsUltimate = true
             }
@@ -78,6 +78,42 @@ public class BattleSimTests
         Assert.True(result.DurationTicks > 0);
         Assert.True(result.DurationTicks <= 5400);
         Assert.True(result.SurvivorsCount > 0);
+    }
+
+    [Fact]
+    public void HealSkill_TargetsLowestHpAlly_NotCasterSelf()
+    {
+        // 回归测试：曾经 ResolveAllyTarget 走了敌对阵营过滤逻辑，
+        // 导致治疗永远落回施法者自己，队友选不中（见 R3 复审报告 §3.2）。
+        var healer = CreateTestUnit(1, "医者", Faction.Player, 0, speed: 300, atk: 100, hp: 1000);
+        healer.CurrentGauge = 1000; // 直接置满行动条，保证第一个 Step 就出手
+        healer.CurrentMana = 100;   // 直接满蓝，保证第一时间释放战技
+        healer.ActiveSkill = new SkillDefinition
+        {
+            SkillId = "heal_test",
+            Name = "测试治疗",
+            ManaCost = 100,
+            HealRatioPermille = 500,
+            TargetMode = TargetMode.LowestHpPercentage
+        };
+
+        var ally = CreateTestUnit(2, "残血队友", Faction.Player, 1, speed: 100, atk: 50, hp: 1000);
+        ally.CurrentHp = 100; // 10% 残血，队伍里血量百分比最低
+
+        var deadEnemy = CreateTestUnit(101, "陪跑敌人", Faction.Enemy, 0, speed: 100, atk: 0, hp: 100);
+        deadEnemy.CurrentHp = 0; // 已阵亡，避免干扰本次断言
+
+        var context = new BattleContext(
+            new List<UnitSnapshot> { healer, ally },
+            new List<UnitSnapshot> { deadEnemy },
+            seed: 1,
+            timeLimitSeconds: 90);
+        var sim = new BattleSim(context);
+
+        sim.Step();
+
+        Assert.Equal(150, ally.CurrentHp); // 100 + Mul(100 Atk, 500‰) = 150，证明治疗确实落在了队友身上
+        Assert.Equal(0, healer.CurrentMana); // 技能已释放（法力归零），而不是空放
     }
 
     [Fact]

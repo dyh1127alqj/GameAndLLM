@@ -132,11 +132,11 @@ public sealed class BattleSim
             u.CurrentRage = global::System.Math.Min(u.RageCap, u.CurrentRage + 20);
         }
 
-        // 治疗技能逻辑：索敌同阵营存活队友
+        // 治疗技能逻辑：索敌同阵营存活队友（友方解析不做阵营过滤、不走黏性锁）
         if (skill.IsHeal)
         {
             var allies = u.Faction == Faction.Player ? Context.PlayerTeam : Context.EnemyTeam;
-            var healTarget = TargetResolver.ResolveTarget(u, skill.TargetMode, allies, _lockTracker) ?? u;
+            var healTarget = TargetResolver.ResolveAllyTarget(u, allies, skill.TargetMode) ?? u;
             
             EventQueue.PushSkillCast(new SkillCastEvent(CurrentTick, u.UnitId, skill.SkillId, healTarget.UnitId, isUltimate));
             var healRes = HealPipeline.CalculateAndApply(u, healTarget, skill.HealRatioPermille);

@@ -9,20 +9,51 @@ namespace GameCore.Targeting;
 public static class TargetResolver
 {
     /// <summary>
-    /// 解析单体目标（兼容调用接口）
+    /// 解析单体目标（兼容调用接口，用于敌对索敌——按黏性锁定 + 阵营过滤）
     /// </summary>
     public static UnitSnapshot? ResolveTarget(
         UnitSnapshot attacker,
         TargetMode mode,
         IEnumerable<UnitSnapshot> targetPool,
-        TargetLockTracker? tracker = null)
+        TargetLockTracker tracker)
     {
         var list = targetPool as IReadOnlyList<UnitSnapshot> ?? targetPool.ToList();
-        if (tracker == null)
-        {
-            return PickBestCandidate(attacker, list.Where(u => !u.IsDead), mode);
-        }
         return ResolveSingleTarget(attacker, list, mode, tracker);
+    }
+
+    /// <summary>
+    /// 解析友方目标（治疗/增益专用）：不做阵营过滤——调用方已传入同阵营花名册；
+    /// 不复用敌对索敌的黏性锁（治疗应实时跟随最低血量者，不应该"黏"在旧目标上）。
+    /// </summary>
+    public static UnitSnapshot? ResolveAllyTarget(
+        UnitSnapshot caster,
+        IReadOnlyList<UnitSnapshot> allies,
+        TargetMode mode)
+    {
+        var candidates = allies.Where(u => !u.IsDead).ToList();
+        if (candidates.Count == 0) return null;
+
+        return mode switch
+        {
+            TargetMode.LowestHpAbsolute => candidates
+                .OrderBy(u => u.CurrentHp)
+                .ThenBy(u => u.UnitId)
+                .FirstOrDefault(),
+            TargetMode.HighestAtk => candidates
+                .OrderByDescending(u => u.BaseAtk)
+                .ThenBy(u => u.UnitId)
+                .FirstOrDefault(),
+            TargetMode.LowestDef => candidates
+                .OrderBy(u => u.BaseArmor)
+                .ThenBy(u => u.UnitId)
+                .FirstOrDefault(),
+            // LowestHpPercentage 及其余模式（含 Nearest/Backline 等对友方无意义的枚举值）
+            // 统一回退为"血量百分比最低者优先"，这是治疗/增益场景下唯一有意义的默认口径
+            _ => candidates
+                .OrderBy(u => (long)u.CurrentHp * 1000 / u.MaxHp)
+                .ThenBy(u => u.UnitId)
+                .FirstOrDefault()
+        };
     }
 
     /// <summary>
