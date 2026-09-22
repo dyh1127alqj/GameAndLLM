@@ -1,5 +1,5 @@
 using System;
-using GameCore.Math;
+using GameCore.Numerics;
 using GameCore.Model;
 
 namespace GameCore.Pipeline;

@@ -20,6 +20,8 @@ public sealed class SkillDefinition
     public int DamagePermille => DamageRatioPermille;    // 兼容别名
     public int BaseDamage { get; init; } = 0;             // 基础固伤
     public int HealRatioPermille { get; init; } = 0;      // 治疗倍率（千分比）
+    public int BaseValue { get => HealRatioPermille; init => HealRatioPermille = value; } // 兼容别名
+    public bool IsHeal => HealRatioPermille > 0;          // 是否为治疗技能
     public int ShieldAmount { get; init; } = 0;           // 护盾数值
 
     // 索敌与作用

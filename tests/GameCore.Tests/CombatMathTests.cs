@@ -1,4 +1,4 @@
-using GameCore.Math;
+using GameCore.Numerics;
 using Xunit;
 
 namespace GameCore.Tests;

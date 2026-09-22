@@ -1,4 +1,4 @@
-namespace GameCore.Math;
+namespace GameCore.Numerics;
 
 /// <summary>
 /// 纯静态确定性数学库（整数千分比 Integer Permille，FP_ONE = 1000）

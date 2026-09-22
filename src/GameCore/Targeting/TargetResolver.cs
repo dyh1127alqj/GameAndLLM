@@ -9,6 +9,23 @@ namespace GameCore.Targeting;
 public static class TargetResolver
 {
     /// <summary>
+    /// 解析单体目标（兼容调用接口）
+    /// </summary>
+    public static UnitSnapshot? ResolveTarget(
+        UnitSnapshot attacker,
+        TargetMode mode,
+        IEnumerable<UnitSnapshot> targetPool,
+        TargetLockTracker? tracker = null)
+    {
+        var list = targetPool as IReadOnlyList<UnitSnapshot> ?? targetPool.ToList();
+        if (tracker == null)
+        {
+            return PickBestCandidate(attacker, list.Where(u => !u.IsDead), mode);
+        }
+        return ResolveSingleTarget(attacker, list, mode, tracker);
+    }
+
+    /// <summary>
     /// 解析单体目标
     /// </summary>
     public static UnitSnapshot? ResolveSingleTarget(

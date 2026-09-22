@@ -53,7 +53,8 @@ public enum DamageFlags
     Reflected   = 1 << 2, // 反弹伤害（防循环吸血/反伤）
     Crit        = 1 << 3, // 暴击
     Executed    = 1 << 4, // 触发斩杀（<12% 直接判定）
-    ShieldAbsorb= 1 << 5  // 护盾抵扣
+    ShieldAbsorb= 1 << 5, // 护盾抵扣
+    Blocked     = 1 << 6  // 伤害被完全格挡或被无敌状态阻断
 }
 
 /// <summary>

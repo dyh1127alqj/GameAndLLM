@@ -1,5 +1,5 @@
 using System;
-using GameCore.Math;
+using GameCore.Numerics;
 using GameCore.Model;
 
 namespace GameCore.Pipeline;
@@ -45,7 +45,7 @@ public static class DamagePipeline
         int effectiveArmor = CombatMath.Mul(target.BaseArmor, Math.Max(0, 1000 - attacker.PenPermille));
         int armorK = CombatMath.ComputeArmorK(target.Level);
         int armorRatio = CombatMath.ArmorDamageRatio(effectiveArmor, armorK);
-        int postArmorDmg = CombatMath.Mul(raw, armorRatio);
+        int postArmorDmg = Math.Max(1, CombatMath.Mul(raw, armorRatio));
 
         // Step 4: 斩杀判定 (Execution: 直接伤害且血量比例 <= 12%)
         bool canExecute = hasExecutePower &&
@@ -79,11 +79,12 @@ public static class DamagePipeline
             }
         }
 
-        // Step 6: 真实扣血与受击回怒 (+5)
+        // Step 6: 真实扣血、受击回怒 (+5) 与受击法力退火 (-10)
         target.CurrentHp = Math.Max(0, target.CurrentHp - hpToDeduct);
         if (target.CurrentHp > 0)
         {
             target.CurrentRage = Math.Min(100, target.CurrentRage + 5);
+            target.CurrentMana = Math.Max(0, target.CurrentMana - 10);
         }
 
         // Step 7: 吸血计算 (非反伤触发)

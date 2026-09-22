@@ -81,7 +81,7 @@ static List<UnitSnapshot> CreateShushanTeam()
     ss02.ActiveSkill = new SkillDefinition { SkillId = "ss_act_01", Name = "断浪剑气", ManaCost = 100, TargetMode = TargetMode.Nearest, DamageRatioPermille = 1600 };
 
     var ss05 = UnitSnapshot.Create(5, "拂尘仙姑", Faction.Player, Profession.Support, 750, 60, 60, 180, 9);
-    ss05.ActiveSkill = new SkillDefinition { SkillId = "ss_heal_01", Name = "甘霖普降", ManaCost = 100, TargetMode = TargetMode.LowestHpPercentage, BaseValue = 250 };
+    ss05.ActiveSkill = new SkillDefinition { SkillId = "ss_heal_01", Name = "甘霖普降", ManaCost = 100, TargetMode = TargetMode.LowestHpPercentage, HealRatioPermille = 1500 };
 
     return new List<UnitSnapshot>
     {
