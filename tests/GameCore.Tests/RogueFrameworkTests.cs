@@ -51,17 +51,44 @@ public class RogueFrameworkTests
     [Fact]
     public void Fusion_Tier3CrossWorldItems_ShouldProduceSuperWeapon()
     {
+        var runState = new RogueRunState(42);
         var defA = new AffixDefinition("shushan_swords_01", "蜀山万剑诀", SlotType.Combat, new[] { AffixTag.Shushan });
         var defB = new AffixDefinition("cyber_blade_01", "赛博纳米刃", SlotType.Combat, new[] { AffixTag.Cyber });
 
         var matA = new AffixInstance(defA, AffixTier.Tier3);
         var matB = new AffixInstance(defB, AffixTier.Tier3);
 
-        var ok = FusionEngine.TryFuse(matA, matB, out var superWeapon);
+        var ok = FusionEngine.TryFuse(runState, matA, matB, out var superWeapon);
         Assert.True(ok);
         Assert.NotNull(superWeapon);
         Assert.Equal("super_nano_flying_sword", superWeapon!.Definition.Id);
-        Assert.True(FusionEngine.IsUnlocked("recipe_super_01"));
+        Assert.True(FusionEngine.IsUnlocked(runState, "recipe_super_01"));
+        Assert.Contains("recipe_super_01", runState.UnlockedRecipeIds);
+    }
+
+    [Fact]
+    public void Fusion_TwoIndependentRunStates_ShouldHaveIsolatedUnlockedRecipes()
+    {
+        var stateA = new RogueRunState(1);
+        var stateB = new RogueRunState(2);
+
+        var defA = new AffixDefinition("shushan_swords_01", "万剑诀", SlotType.Combat, new[] { AffixTag.Shushan });
+        var defB = new AffixDefinition("cyber_blade_01", "纳米刃", SlotType.Combat, new[] { AffixTag.Cyber });
+
+        var matA = new AffixInstance(defA, AffixTier.Tier3);
+        var matB = new AffixInstance(defB, AffixTier.Tier3);
+
+        // 仅在 A 中合成解锁
+        var ok = FusionEngine.TryFuse(stateA, matA, matB, out _);
+        Assert.True(ok);
+
+        // A 已经解锁
+        Assert.True(FusionEngine.IsUnlocked(stateA, "recipe_super_01"));
+        Assert.Contains("recipe_super_01", stateA.UnlockedRecipeIds);
+
+        // B 绝对不受静态字段污染，保持未解锁状态
+        Assert.False(FusionEngine.IsUnlocked(stateB, "recipe_super_01"));
+        Assert.DoesNotContain("recipe_super_01", stateB.UnlockedRecipeIds);
     }
 
     [Fact]
@@ -111,7 +138,7 @@ public class RogueFrameworkTests
         for (int seed = 1; seed <= 5; seed++)
         {
             var map = RogueMapGenerator.Generate(seed, 1);
-            Assert.True(map.AllNodes.Any(n => n.Type == RogueNodeType.Rift));
+            Assert.Contains(map.AllNodes, n => n.Type == RogueNodeType.Rift);
         }
     }
 

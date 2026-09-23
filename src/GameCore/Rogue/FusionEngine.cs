@@ -13,7 +13,6 @@ public sealed record FusionRecipe(
 public static class FusionEngine
 {
     private static readonly List<FusionRecipe> _recipes = new();
-    private static readonly HashSet<string> _unlockedRecipeIds = new();
 
     static FusionEngine()
     {
@@ -70,7 +69,7 @@ public static class FusionEngine
             (r.MaterialAId == b.Definition.Id && r.MaterialBId == a.Definition.Id));
     }
 
-    public static AffixInstance? TryFuse(AffixInstance a, AffixInstance b)
+    public static AffixInstance? TryFuse(RogueRunState state, AffixInstance a, AffixInstance b)
     {
         if (!CanFuse(a, b)) return null;
 
@@ -78,27 +77,8 @@ public static class FusionEngine
             (r.MaterialAId == a.Definition.Id && r.MaterialBId == b.Definition.Id) ||
             (r.MaterialAId == b.Definition.Id && r.MaterialBId == a.Definition.Id));
 
-        _unlockedRecipeIds.Add(recipe.RecipeId);
+        state.UnlockedRecipeIds.Add(recipe.RecipeId);
         return new AffixInstance(recipe.ResultDefinition, AffixTier.Tier3);
-    }
-
-    public static bool TryFuse(AffixInstance a, AffixInstance b, out AffixInstance? result)
-    {
-        result = TryFuse(a, b);
-        return result != null;
-    }
-
-    public static AffixInstance? TryFuse(RogueRunState state, AffixInstance a, AffixInstance b)
-    {
-        var result = TryFuse(a, b);
-        if (result != null)
-        {
-            var recipe = _recipes.First(r =>
-                (r.MaterialAId == a.Definition.Id && r.MaterialBId == b.Definition.Id) ||
-                (r.MaterialAId == b.Definition.Id && r.MaterialBId == a.Definition.Id));
-            state.UnlockedRecipeIds.Add(recipe.RecipeId);
-        }
-        return result;
     }
 
     public static bool TryFuse(RogueRunState state, AffixInstance a, AffixInstance b, out AffixInstance? result)
@@ -108,8 +88,6 @@ public static class FusionEngine
     }
 
     public static bool IsRecipeUnlocked(RogueRunState state, string recipeId) => state.UnlockedRecipeIds.Contains(recipeId);
-
-    public static bool IsRecipeUnlocked(string recipeId) => _unlockedRecipeIds.Contains(recipeId);
-    public static bool IsUnlocked(string recipeId) => IsRecipeUnlocked(recipeId);
+    public static bool IsUnlocked(RogueRunState state, string recipeId) => IsRecipeUnlocked(state, recipeId);
     public static IReadOnlyList<FusionRecipe> AllRecipes => _recipes;
 }
