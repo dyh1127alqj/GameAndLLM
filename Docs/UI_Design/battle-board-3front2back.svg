@@ -1,0 +1,203 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+  <defs>
+    <linearGradient id="xianxiaBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0C1712"/>
+      <stop offset="100%" stop-color="#152A20"/>
+    </linearGradient>
+    <linearGradient id="cyberBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#151935"/>
+      <stop offset="100%" stop-color="#0A0C18"/>
+    </linearGradient>
+    <linearGradient id="contactGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF2E9A" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#7FE0B8" stop-opacity="0.9"/>
+    </linearGradient>
+    <pattern id="hexGrid" width="46" height="40" patternUnits="userSpaceOnUse">
+      <path d="M23 0 L46 12 L46 28 L23 40 L0 28 L0 12 Z" fill="none" stroke="#2A3560" stroke-width="1" opacity="0.5"/>
+    </pattern>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- ============ 背景：左我（蜀山） / 右敌（赛博） ============ -->
+  <rect x="0" y="60" width="600" height="640" fill="url(#xianxiaBg)"/>
+  <rect x="600" y="60" width="600" height="640" fill="url(#cyberBg)"/>
+  <rect x="600" y="60" width="600" height="640" fill="url(#hexGrid)"/>
+  <g stroke="#4A6B57" stroke-width="1.5" fill="none" opacity="0.4">
+    <path d="M40 640 Q90 620 140 640 T240 640"/>
+    <path d="M60 120 Q110 105 160 120 T260 120"/>
+    <path d="M320 400 Q360 385 400 400 T480 400"/>
+  </g>
+
+  <!-- ============ 顶部 HUD ============ -->
+  <rect x="0" y="0" width="1200" height="60" fill="#05060C"/>
+  <text x="600" y="24" text-anchor="middle" fill="#8FA0C0" font-size="12" letter-spacing="2">CONTACT — BATTLE TIMER</text>
+  <text x="600" y="48" text-anchor="middle" fill="#FFFFFF" font-size="26" font-weight="bold">00:33</text>
+  <text x="40" y="38" fill="#7FE0B8" font-size="16" font-weight="bold">我方 · 蜀山断裂仙界</text>
+  <text x="1160" y="38" text-anchor="end" fill="#FF6FC4" font-size="16" font-weight="bold">敌方 · 赛博霓虹蜂巢</text>
+
+  <!-- ============ 接敌对峙线（竖线，左右分屏） ============ -->
+  <line x1="600" y1="60" x2="600" y2="700" stroke="url(#contactGlow)" stroke-width="3" filter="url(#softGlow)"/>
+  <text x="600" y="80" text-anchor="middle" fill="#FFFFFF" font-size="11" opacity="0.8" transform="rotate(90 600 80)"></text>
+  <text x="612" y="380" fill="#FFFFFF" font-size="11" opacity="0.75">接敌对峙线</text>
+
+  <!-- 列标签 -->
+  <g fill="#6B7590" font-size="11">
+    <text x="280" y="200" text-anchor="middle">我·后排（靠外侧）</text>
+    <text x="460" y="200" text-anchor="middle">我·前排（靠中线）</text>
+    <text x="740" y="200" text-anchor="middle">敌·前排（靠中线）</text>
+    <text x="920" y="200" text-anchor="middle">敌·后排（靠外侧）</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- 我方（蜀山，左半区）：前排 3（靠中线，x=460）+ 后排 2（靠外侧，x=280） -->
+  <!-- ============================================================ -->
+
+  <!-- 我·前排 P1 -->
+  <g transform="translate(460,220)">
+    <circle r="30" fill="none" stroke="#C9A85C" stroke-width="3" stroke-dasharray="150 38" filter="url(#softGlow)"/>
+    <circle r="24" fill="#1A2A20" stroke="#7FE0B8" stroke-width="2"/>
+    <path d="M0,-14 L4,4 L-4,4 Z" fill="none" stroke="#7FE0B8" stroke-width="1.5"/>
+    <text y="-40" text-anchor="middle" fill="#B7F5D8" font-size="11" font-weight="bold">57</text>
+    <text y="46" text-anchor="middle" fill="#8FA0C0" font-size="10">P1</text>
+    <g transform="translate(-17,52)">
+      <rect width="34" height="5" rx="2" fill="#20301F"/><rect width="30" height="5" rx="2" fill="#FF4D6D"/>
+      <rect y="7" width="34" height="5" rx="2" fill="#20301F"/><rect y="7" width="20" height="5" rx="2" fill="#3E8EDE"/>
+      <rect y="14" width="34" height="5" rx="2" fill="#20301F"/><rect y="14" width="14" height="5" rx="2" fill="#F0A73C"/>
+    </g>
+  </g>
+
+  <!-- 我·前排 P2（中间） -->
+  <g transform="translate(460,375)">
+    <circle r="30" fill="none" stroke="#C9A85C" stroke-width="3" stroke-dasharray="188 0" filter="url(#softGlow)"/>
+    <circle r="24" fill="#1A2A20" stroke="#7FE0B8" stroke-width="2"/>
+    <path d="M0,-14 L4,4 L-4,4 Z" fill="none" stroke="#7FE0B8" stroke-width="1.5"/>
+    <text y="46" text-anchor="middle" fill="#8FA0C0" font-size="10">P2</text>
+    <g transform="translate(-17,52)">
+      <rect width="34" height="5" rx="2" fill="#20301F"/><rect width="34" height="5" rx="2" fill="#FF4D6D"/>
+      <rect y="7" width="34" height="5" rx="2" fill="#20301F"/><rect y="7" width="30" height="5" rx="2" fill="#3E8EDE"/>
+      <rect y="14" width="34" height="5" rx="2" fill="#20301F"/><rect y="14" width="34" height="5" rx="2" fill="#F0A73C"/>
+    </g>
+  </g>
+
+  <!-- 我·前排 P3 -->
+  <g transform="translate(460,530)">
+    <circle r="30" fill="none" stroke="#C9A85C" stroke-width="3" stroke-dasharray="165 23" filter="url(#softGlow)"/>
+    <circle r="24" fill="#1A2A20" stroke="#7FE0B8" stroke-width="2"/>
+    <path d="M0,-14 L4,4 L-4,4 Z" fill="none" stroke="#7FE0B8" stroke-width="1.5"/>
+    <text y="-40" text-anchor="middle" fill="#B7F5D8" font-size="11" font-weight="bold">102</text>
+    <text y="46" text-anchor="middle" fill="#8FA0C0" font-size="10">P3</text>
+    <g transform="translate(-17,52)">
+      <rect width="34" height="5" rx="2" fill="#20301F"/><rect width="18" height="5" rx="2" fill="#FF4D6D"/>
+      <rect y="7" width="34" height="5" rx="2" fill="#20301F"/><rect y="7" width="26" height="5" rx="2" fill="#3E8EDE"/>
+      <rect y="14" width="34" height="5" rx="2" fill="#20301F"/><rect y="14" width="20" height="5" rx="2" fill="#F0A73C"/>
+    </g>
+  </g>
+
+  <!-- 我·后排 P4（嵌在 P1/P2 空隙） -->
+  <g transform="translate(280,297)">
+    <circle r="30" fill="none" stroke="#C9A85C" stroke-width="3" stroke-dasharray="130 58" filter="url(#softGlow)"/>
+    <circle r="24" fill="#1A2A20" stroke="#7FE0B8" stroke-width="2"/>
+    <path d="M0,-14 L4,4 L-4,4 Z" fill="none" stroke="#7FE0B8" stroke-width="1.5"/>
+    <text y="-40" text-anchor="middle" fill="#B7F5D8" font-size="11" font-weight="bold">102</text>
+    <text y="46" text-anchor="middle" fill="#8FA0C0" font-size="10">P4</text>
+    <g transform="translate(-17,52)">
+      <rect width="34" height="5" rx="2" fill="#20301F"/><rect width="24" height="5" rx="2" fill="#FF4D6D"/>
+      <rect y="7" width="34" height="5" rx="2" fill="#20301F"/><rect y="7" width="12" height="5" rx="2" fill="#3E8EDE"/>
+      <rect y="14" width="34" height="5" rx="2" fill="#20301F"/><rect y="14" width="28" height="5" rx="2" fill="#F0A73C"/>
+    </g>
+  </g>
+
+  <!-- 我·后排 P5（嵌在 P2/P3 空隙，支援位） -->
+  <g transform="translate(280,452)">
+    <circle r="30" fill="none" stroke="#C9A85C" stroke-width="3" stroke-dasharray="95 93" filter="url(#softGlow)"/>
+    <circle r="24" fill="#1A2A20" stroke="#7FE0B8" stroke-width="2"/>
+    <path d="M0,-14 L4,4 L-4,4 Z" fill="none" stroke="#7FE0B8" stroke-width="1.5"/>
+    <text y="46" text-anchor="middle" fill="#8FA0C0" font-size="10">P5（支援）</text>
+    <g transform="translate(-17,58)">
+      <rect width="34" height="5" rx="2" fill="#20301F"/><rect width="30" height="5" rx="2" fill="#FF4D6D"/>
+      <rect y="7" width="34" height="5" rx="2" fill="#20301F"/><rect y="7" width="6" height="5" rx="2" fill="#3E8EDE"/>
+      <rect y="14" width="34" height="5" rx="2" fill="#20301F"/><rect y="14" width="10" height="5" rx="2" fill="#F0A73C"/>
+    </g>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- 敌方（赛博，右半区）：前排 3（靠中线，x=740）+ 后排 2（靠外侧，x=920） -->
+  <!-- ============================================================ -->
+
+  <!-- 敌·前排 E1 -->
+  <g transform="translate(740,220)">
+    <circle r="30" fill="none" stroke="#28E0FF" stroke-width="3" stroke-dasharray="160 28" filter="url(#softGlow)"/>
+    <circle r="24" fill="#1B2140" stroke="#FF6FC4" stroke-width="2"/>
+    <path d="M-8,-4 L8,-4 L8,6 L-8,6 Z M-10,-4 L0,-14 L10,-4" fill="none" stroke="#FF6FC4" stroke-width="1.5"/>
+    <text y="46" text-anchor="middle" fill="#8FA0C0" font-size="10">E1</text>
+    <g transform="translate(-17,52)">
+      <rect width="34" height="5" rx="2" fill="#2A2E45"/><rect width="28" height="5" rx="2" fill="#FF4D6D"/>
+      <rect y="7" width="34" height="5" rx="2" fill="#2A2E45"/><rect y="7" width="20" height="5" rx="2" fill="#3E8EDE"/>
+      <rect y="14" width="34" height="5" rx="2" fill="#2A2E45"/><rect y="14" width="30" height="5" rx="2" fill="#F0A73C"/>
+    </g>
+  </g>
+
+  <!-- 敌·前排 E2（中间，集火焦点） -->
+  <g transform="translate(740,375)">
+    <circle r="32" fill="none" stroke="#FF2E9A" stroke-width="3.5" stroke-dasharray="70 118" filter="url(#softGlow)"/>
+    <circle r="24" fill="#241432" stroke="#FF2E9A" stroke-width="2.5"/>
+    <path d="M-8,-4 L8,-4 L8,6 L-8,6 Z M-10,-4 L0,-14 L10,-4" fill="none" stroke="#FF2E9A" stroke-width="1.5"/>
+    <text y="-42" text-anchor="middle" fill="#FFD24D" font-size="11" font-weight="bold">98</text>
+    <text y="48" text-anchor="middle" fill="#8FA0C0" font-size="10">E2</text>
+    <g transform="translate(-17,54)">
+      <rect width="34" height="5" rx="2" fill="#2A2E45"/><rect width="12" height="5" rx="2" fill="#FF4D6D"/>
+      <rect y="7" width="34" height="5" rx="2" fill="#2A2E45"/><rect y="7" width="24" height="5" rx="2" fill="#3E8EDE"/>
+      <rect y="14" width="34" height="5" rx="2" fill="#2A2E45"/><rect y="14" width="34" height="5" rx="2" fill="#F0A73C"/>
+    </g>
+  </g>
+
+  <!-- 敌·前排 E3 -->
+  <g transform="translate(740,530)">
+    <circle r="30" fill="none" stroke="#28E0FF" stroke-width="3" stroke-dasharray="180 8" filter="url(#softGlow)"/>
+    <circle r="24" fill="#1B2140" stroke="#FF6FC4" stroke-width="2"/>
+    <path d="M-8,-4 L8,-4 L8,6 L-8,6 Z M-10,-4 L0,-14 L10,-4" fill="none" stroke="#FF6FC4" stroke-width="1.5"/>
+    <text y="46" text-anchor="middle" fill="#8FA0C0" font-size="10">E3</text>
+    <g transform="translate(-17,52)">
+      <rect width="34" height="5" rx="2" fill="#2A2E45"/><rect width="24" height="5" rx="2" fill="#FF4D6D"/>
+      <rect y="7" width="34" height="5" rx="2" fill="#2A2E45"/><rect y="7" width="18" height="5" rx="2" fill="#3E8EDE"/>
+      <rect y="14" width="34" height="5" rx="2" fill="#2A2E45"/><rect y="14" width="22" height="5" rx="2" fill="#F0A73C"/>
+    </g>
+  </g>
+
+  <!-- 敌·后排 E4（嵌在 E1/E2 空隙） -->
+  <g transform="translate(920,297)">
+    <circle r="30" fill="none" stroke="#28E0FF" stroke-width="3" stroke-dasharray="141 47" filter="url(#softGlow)"/>
+    <circle r="24" fill="#1B2140" stroke="#FF6FC4" stroke-width="2"/>
+    <path d="M-8,-4 L8,-4 L8,6 L-8,6 Z M-10,-4 L0,-14 L10,-4" fill="none" stroke="#FF6FC4" stroke-width="1.5"/>
+    <text y="46" text-anchor="middle" fill="#8FA0C0" font-size="10">E4</text>
+    <g transform="translate(-17,52)">
+      <rect width="34" height="5" rx="2" fill="#2A2E45"/><rect width="22" height="5" rx="2" fill="#FF4D6D"/>
+      <rect y="7" width="34" height="5" rx="2" fill="#2A2E45"/><rect y="7" width="16" height="5" rx="2" fill="#3E8EDE"/>
+      <rect y="14" width="34" height="5" rx="2" fill="#2A2E45"/><rect y="14" width="26" height="5" rx="2" fill="#F0A73C"/>
+    </g>
+  </g>
+
+  <!-- 敌·后排 E5（嵌在 E2/E3 空隙） -->
+  <g transform="translate(920,452)">
+    <circle r="30" fill="none" stroke="#28E0FF" stroke-width="3" stroke-dasharray="110 78" filter="url(#softGlow)"/>
+    <circle r="24" fill="#1B2140" stroke="#FF6FC4" stroke-width="2"/>
+    <path d="M-8,-4 L8,-4 L8,6 L-8,6 Z M-10,-4 L0,-14 L10,-4" fill="none" stroke="#FF6FC4" stroke-width="1.5"/>
+    <text y="46" text-anchor="middle" fill="#8FA0C0" font-size="10">E5</text>
+    <g transform="translate(-17,52)">
+      <rect width="34" height="5" rx="2" fill="#2A2E45"/><rect width="30" height="5" rx="2" fill="#FF4D6D"/>
+      <rect y="7" width="34" height="5" rx="2" fill="#2A2E45"/><rect y="7" width="10" height="5" rx="2" fill="#3E8EDE"/>
+      <rect y="14" width="34" height="5" rx="2" fill="#2A2E45"/><rect y="14" width="18" height="5" rx="2" fill="#F0A73C"/>
+    </g>
+  </g>
+
+  <!-- ============ 图注 ============ -->
+  <g fill="#5A6480" font-size="10">
+    <text x="600" y="682" text-anchor="middle">
+      圆圈=角色头像占位（可替换为 AI 生成立绘）｜圆环=ATB 行动条｜三色条=HP/Mana/Rage｜数字=飘字伤害示例｜左右各 3 前 2 后，后排嵌于前排空隙
+    </text>
+  </g>
+</svg>
