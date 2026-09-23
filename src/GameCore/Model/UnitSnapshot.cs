@@ -49,8 +49,9 @@ public sealed class UnitSnapshot
     public int CcCountInWindow { get; set; } = 0;
     public int CcWindowCooldownTicks { get; set; } = 0; // 5s (300 ticks) 衰减计时器
 
-    // 死亡标记
+    // 死亡与重伤标记 (D-09)
     public bool IsDead => CurrentHp <= 0;
+    public bool IsInjured { get; set; } = false; // 阵亡后转入重伤不可上阵
 
     // 技能槽
     public SkillDefinition? ActiveSkill { get; set; }   // 插槽战技（法力驱动）
@@ -88,6 +89,7 @@ public sealed class UnitSnapshot
             ShieldHp = 0,
             HealingDonePermille = this.HealingDonePermille,
             HealingReceivedPermille = this.HealingReceivedPermille,
+            IsInjured = this.IsInjured,
             IsInvincible = false,
             IsStealthed = false,
             TauntedByUnitId = null,
