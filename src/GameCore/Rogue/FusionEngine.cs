@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace GameCore.Rogue;
@@ -29,7 +29,7 @@ public static class FusionEngine
             new AffixDefinition(
                 "super_nano_flying_sword",
                 "高频纳米飞剑",
-                SlotType.Core | SlotType.Combat,
+                SlotType.Core | SlotType.Combat | SlotType.Singularity,
                 new[] { AffixTag.Shushan, AffixTag.Cyber, AffixTag.Striker },
                 "概念级超武：贯穿全场，直接伤害附加 35% 破甲与撕裂"
             )
@@ -42,7 +42,7 @@ public static class FusionEngine
             new AffixDefinition(
                 "super_golden_core_reactor",
                 "赛博金丹热能炉",
-                SlotType.Core | SlotType.Combat,
+                SlotType.Core | SlotType.Combat | SlotType.Singularity,
                 new[] { AffixTag.Shushan, AffixTag.Cyber, AffixTag.Guardian },
                 "概念级超武：开局全队获得 30% 护盾，受击反弹 25% 真实伤害"
             )
@@ -55,7 +55,7 @@ public static class FusionEngine
             new AffixDefinition(
                 "super_causal_sniper",
                 "概念级因果律狙击",
-                SlotType.Core | SlotType.Combat,
+                SlotType.Core | SlotType.Combat | SlotType.Singularity,
                 new[] { AffixTag.Shushan, AffixTag.Cyber, AffixTag.Ranger },
                 "概念级超武：首击必定暴击，对敌方后排造成 300% 贯穿打击"
             )
@@ -87,6 +87,27 @@ public static class FusionEngine
         result = TryFuse(a, b);
         return result != null;
     }
+
+    public static AffixInstance? TryFuse(RogueRunState state, AffixInstance a, AffixInstance b)
+    {
+        var result = TryFuse(a, b);
+        if (result != null)
+        {
+            var recipe = _recipes.First(r =>
+                (r.MaterialAId == a.Definition.Id && r.MaterialBId == b.Definition.Id) ||
+                (r.MaterialAId == b.Definition.Id && r.MaterialBId == a.Definition.Id));
+            state.UnlockedRecipeIds.Add(recipe.RecipeId);
+        }
+        return result;
+    }
+
+    public static bool TryFuse(RogueRunState state, AffixInstance a, AffixInstance b, out AffixInstance? result)
+    {
+        result = TryFuse(state, a, b);
+        return result != null;
+    }
+
+    public static bool IsRecipeUnlocked(RogueRunState state, string recipeId) => state.UnlockedRecipeIds.Contains(recipeId);
 
     public static bool IsRecipeUnlocked(string recipeId) => _unlockedRecipeIds.Contains(recipeId);
     public static bool IsUnlocked(string recipeId) => IsRecipeUnlocked(recipeId);

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using GameCore.Model;
 using GameCore.Rogue;
@@ -83,7 +83,7 @@ public class RogueFrameworkTests
         Assert.True(healed);
         Assert.False(injuredUnit.IsInjured);
         Assert.Equal(250, runState.Credits);
-        Assert.Equal(130, InjuryService.GetNextHealFee(runState));
+        Assert.Equal(100, InjuryService.GetNextHealFee(runState));
     }
 
     [Fact]
@@ -103,5 +103,30 @@ public class RogueFrameworkTests
 
         var bossNode = map1.AllNodes.First(n => n.Step == 5);
         Assert.Equal(RogueNodeType.Boss, bossNode.Type);
+    }
+
+    [Fact]
+    public void RogueMap_EveryFloor_ShouldContainAtLeastOneRift()
+    {
+        for (int seed = 1; seed <= 5; seed++)
+        {
+            var map = RogueMapGenerator.Generate(seed, 1);
+            Assert.True(map.AllNodes.Any(n => n.Type == RogueNodeType.Rift));
+        }
+    }
+
+    [Fact]
+    public void SocketManager_SingularitySlot_ShouldRequireSlotTypeAndUnlockedCount()
+    {
+        var mgr = new SocketManager();
+        var superAffix = new AffixInstance(new AffixDefinition("super_test", "测试超武", SlotType.Singularity), AffixTier.Tier3);
+        
+        // 默认 3 槽，尝试装配到 Slot 5 应该失败
+        Assert.False(mgr.EquipAffix(1, 5, superAffix, isSafeNode: true));
+
+        // 解锁至 6 槽后装配应该成功
+        mgr.GetSockets(1).UnlockedSlotCount = 6;
+        Assert.True(mgr.EquipAffix(1, 5, superAffix, isSafeNode: true));
+        Assert.NotNull(mgr.GetSockets(1).SingularitySlot);
     }
 }

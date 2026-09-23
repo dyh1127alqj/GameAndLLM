@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using GameCore.Model;
@@ -26,12 +26,12 @@ public sealed class AffixDefinition
 
     public AffixDefinition() { }
 
-    public AffixDefinition(string id, string name, SlotType allowedSlots, IEnumerable<AffixTag> tags, string description = "")
+    public AffixDefinition(string id, string name, SlotType allowedSlots = SlotType.Core, IEnumerable<AffixTag>? tags = null, string description = "")
     {
         Id = id;
         Name = name;
         AllowedSlots = allowedSlots;
-        Tags = tags.ToList();
+        Tags = tags?.ToList() ?? new();
         Description = description;
     }
 }

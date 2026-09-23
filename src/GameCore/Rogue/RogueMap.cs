@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -64,6 +64,21 @@ public static class RogueMapGenerator
                 string id = $"f{floorIndex}_s{step}_t{track}";
                 var type = RollNodeType(step, rng);
                 map.Nodes[id] = new RogueMapNode(id, step, track, type);
+            }
+        }
+
+        // 跨界裂隙保底：每层至少出现 1 个 Rift 节点 (D-22 / 审查 2.2 规范)
+        if (!map.Nodes.Values.Any(n => n.Type == RogueNodeType.Rift))
+        {
+            var candidates = map.Nodes.Values
+                .Where(n => n.StepIndex >= 1 && n.StepIndex <= 3 && n.Type != RogueNodeType.Safehouse)
+                .OrderBy(n => n.NodeId)
+                .ToList();
+
+            if (candidates.Count > 0)
+            {
+                var pick = candidates[rng.Next(candidates.Count)];
+                map.Nodes[pick.NodeId] = new RogueMapNode(pick.NodeId, pick.StepIndex, pick.TrackIndex, RogueNodeType.Rift);
             }
         }
 

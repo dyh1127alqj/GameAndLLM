@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -10,9 +10,9 @@ public sealed class VesselSockets
     public AffixInstance? CoreSlot1 { get; set; }
     public AffixInstance? CoreSlot2 { get; set; }
     public AffixInstance? CombatSlot1 { get; set; }
-    public AffixInstance? CombatSlot2 { get; set; }
     public AffixInstance? GeneralSlot1 { get; set; }
-    public AffixInstance? GeneralSlot2 { get; set; }
+    public AffixInstance? CombatSlot2 { get; set; }
+    public AffixInstance? SingularitySlot { get; set; }
 
     public int UnlockedSlotCount { get; set; } = 3;
 
@@ -22,7 +22,7 @@ public sealed class VesselSockets
     }
 
     public IEnumerable<AffixInstance> AllEquippedAffixes =>
-        new[] { CoreSlot1, CoreSlot2, CombatSlot1, CombatSlot2, GeneralSlot1, GeneralSlot2 }
+        new[] { CoreSlot1, CoreSlot2, CombatSlot1, GeneralSlot1, CombatSlot2, SingularitySlot }
             .Where(a => a != null)!;
 
     public IEnumerable<AffixInstance> CoreAffixes =>
@@ -43,6 +43,8 @@ public sealed class SocketManager
         return s;
     }
 
+    public VesselSockets GetSockets(int unitId) => GetOrCreateSockets(unitId);
+
     public bool EquipAffix(int unitId, int slotIndex, AffixInstance affix, bool isSafeNode = true)
     {
         if (!isSafeNode) return false;
@@ -53,9 +55,9 @@ public sealed class SocketManager
             0 => TrySetCore(affix, a => s.CoreSlot1 = a),
             1 => TrySetCore(affix, a => s.CoreSlot2 = a),
             2 => TrySetCombat(affix, a => s.CombatSlot1 = a),
-            3 when s.UnlockedSlotCount >= 4 => TrySetCombat(affix, a => s.CombatSlot2 = a),
-            4 when s.UnlockedSlotCount >= 5 => TrySetGeneral(affix, a => s.GeneralSlot1 = a),
-            5 when s.UnlockedSlotCount >= 6 => TrySetGeneral(affix, a => s.GeneralSlot2 = a),
+            3 when s.UnlockedSlotCount >= 4 => TrySetGeneral(affix, a => s.GeneralSlot1 = a),
+            4 when s.UnlockedSlotCount >= 5 => TrySetCombat(affix, a => s.CombatSlot2 = a),
+            5 when s.UnlockedSlotCount >= 6 => TrySetSingularity(affix, a => s.SingularitySlot = a),
             _ => false
         };
     }
@@ -77,6 +79,13 @@ public sealed class SocketManager
     private static bool TrySetGeneral(AffixInstance a, Action<AffixInstance> setter)
     {
         if (!a.Definition.AllowedSlots.HasFlag(SlotType.General)) return false;
+        setter(a);
+        return true;
+    }
+
+    private static bool TrySetSingularity(AffixInstance a, Action<AffixInstance> setter)
+    {
+        if (!a.Definition.AllowedSlots.HasFlag(SlotType.Singularity)) return false;
         setter(a);
         return true;
     }
